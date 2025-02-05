@@ -166,17 +166,12 @@
 
     <!-- Boutons -->
 
-    <LinearLayout
-
+    <ListView
         android:id="@+id/listsContainer"
         android:layout_width="match_parent"
-        android:layout_height="370dp"
-        android:layout_marginTop="8dp"
-        android:orientation="vertical"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
-
-    </LinearLayout>
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#222222" />
 
     <LinearLayout
         android:layout_width="match_parent"

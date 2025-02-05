@@ -1,14 +1,10 @@
 package com.example.ustock_app;
 
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
@@ -49,10 +45,7 @@ public class ListDetailActivity extends AppCompatActivity {
         });
 
         Button homeButton = findViewById(R.id.homeButton);
-        homeButton.setOnClickListener(view -> {
-            Intent intent = new Intent(ListDetailActivity.this, MainActivity.class);
-            startActivity(intent);
-        });
+        homeButton.setOnClickListener(view -> finish());
     }
 
     private void showDeleteItemDialog(int position) {
