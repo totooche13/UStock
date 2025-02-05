@@ -1,16 +1,16 @@
 package com.example.ustock_app;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
 
 public class BarcodeScannerActivity extends AppCompatActivity {
 
-    // Initialisation du lanceur pour scanner le code-barres
-    private final androidx.activity.result.ActivityResultLauncher<ScanOptions> barcodeLauncher = registerForActivityResult(
+    private final ActivityResultLauncher<ScanOptions> barcodeLauncher = registerForActivityResult(
             new ScanContract(),
             result -> {
                 if (result.getContents() != null) {
@@ -18,18 +18,22 @@ public class BarcodeScannerActivity extends AppCompatActivity {
                 } else {
                     Toast.makeText(BarcodeScannerActivity.this, "Aucun code scanné", Toast.LENGTH_SHORT).show();
                 }
+                // Redirection vers MainActivity après le scan
+                Intent intent = new Intent(BarcodeScannerActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish(); // Ferme BarcodeScannerActivity
             }
     );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_barcode_scanner); // Utilise le bon layout
+        setContentView(R.layout.activity_barcode_scanner);
         ScanOptions options = new ScanOptions();
         options.setPrompt("Placez le code-barres devant la caméra");
-        options.setBeepEnabled(true);  // Active un bip sonore lors du scan
-        options.setOrientationLocked(true);  // Verrouille l'orientation
-        options.setCaptureActivity(PortraitCaptureActivity.class);  // Utilise une activité personnalisée pour forcer le mode portrait
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        options.setCaptureActivity(PortraitCaptureActivity.class);
         barcodeLauncher.launch(options);
     }
 }
