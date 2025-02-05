@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UStock - Liste des Produits</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        img {
+            max-width: 80px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>📦 Liste des Produits en Base de Données</h1>
+    <table>
+        <tr>
+            <th>Image</th>
+            <th>Nom du Produit</th>
+            <th>Marque</th>
+            <th>Quantité</th>
+            <th>Code-barres</th>
+        </tr>
+        {% for product in products %}
+        <tr>
+            <td>
+                {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.product_name }}">
+                {% else %}
+                ❌ Pas d'image
+                {% endif %}
+            </td>
+            <td>{{ product.product_name }}</td>
+            <td>{{ product.brand }}</td>
+            <td>{{ product.quantity }}</td>
+            <td>{{ product.barcode }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
