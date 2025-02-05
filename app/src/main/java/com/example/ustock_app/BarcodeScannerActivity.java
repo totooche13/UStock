@@ -28,7 +28,6 @@ public class BarcodeScannerActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_barcode_scanner);
         ScanOptions options = new ScanOptions();
         options.setPrompt("Placez le code-barres devant la caméra");
         options.setBeepEnabled(true);
