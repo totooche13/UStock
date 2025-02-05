@@ -1,21 +1,29 @@
 package com.example.ustock_app;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
     private LinearLayout listsContainer;
     private ArrayList<String> userLists;
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,50 +31,39 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         listsContainer = findViewById(R.id.listsContainer);
-        userLists = new ArrayList<>();
+        sharedPreferences = getSharedPreferences("USTOCK_PREFS", Context.MODE_PRIVATE);
+        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()))
+        ;
+
+        for (String list : userLists) {
+            addListToUI(list);
+        }
+
         Button barcode_button = findViewById(R.id.barcode_button);
-
         Button addListButton = findViewById(R.id.monButton);
-        addListButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showAddListDialog();
-            }
-        });
 
-        barcode_button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, BarcodeScannerActivity.class);
-                startActivity(intent);
-            }
+        addListButton.setOnClickListener(v -> showAddListDialog());
+        barcode_button.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, BarcodeScannerActivity.class);
+            intent.putStringArrayListExtra("userLists", userLists);
+            startActivity(intent);
         });
     }
 
     private void showAddListDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Nouvelle liste");
-
         final EditText input = new EditText(this);
         builder.setView(input);
-
-        builder.setPositiveButton("Ajouter", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String listName = input.getText().toString().trim();
-                if (!listName.isEmpty()) {
-                    addListToUI(listName);
-                    userLists.add(listName);
-                }
+        builder.setPositiveButton("Ajouter", (dialog, which) -> {
+            String listName = input.getText().toString().trim();
+            if (!listName.isEmpty()) {
+                addListToUI(listName);
+                userLists.add(listName);
+                saveLists();
             }
         });
-        builder.setNegativeButton("Annuler", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
-
+        builder.setNegativeButton("Annuler", (dialog, which) -> dialog.cancel());
         builder.show();
     }
 
@@ -76,12 +73,7 @@ public class MainActivity extends AppCompatActivity {
         listView.setTextSize(18);
         listView.setPadding(16, 16, 16, 16);
         listView.setBackground(getResources().getDrawable(R.drawable.rounded_corner));
-        listView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openListActivity(listName);
-            }
-        });
+        listView.setOnClickListener(v -> openListActivity(listName));
         listsContainer.addView(listView);
     }
 
@@ -89,5 +81,12 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ListDetailActivity.class);
         intent.putExtra("list_name", listName);
         startActivity(intent);
+    }
+
+    private void saveLists() {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        Set<String> set = new HashSet<>(userLists);
+        editor.putStringSet("userLists", set);
+        editor.apply();
     }
 }
