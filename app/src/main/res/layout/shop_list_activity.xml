@@ -164,20 +164,17 @@
         android:textStyle="bold"
         android:paddingBottom="8dp" />
 
-    <!-- Boutons -->
-
     <LinearLayout
 
         android:id="@+id/listsContainer"
         android:layout_width="match_parent"
-        android:layout_height="370dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:orientation="vertical"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        android:orientation="vertical">
 
     </LinearLayout>
 
+    <!-- Boutons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

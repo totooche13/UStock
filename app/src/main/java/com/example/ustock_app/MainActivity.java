@@ -3,10 +3,12 @@ package com.example.ustock_app;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
@@ -35,8 +37,9 @@ public class MainActivity extends AppCompatActivity {
             addListToUI(list);
         }
 
-        Button barcode_button = findViewById(R.id.barcode_button);
-        Button addListButton = findViewById(R.id.monButton);
+        Button barcode_button = findViewById(R.id.addArticleButton);
+        Button addListButton = findViewById(R.id.addListButton);
+        ImageView shopList = findViewById(R.id.shopListPageButton);
 
         addListButton.setOnClickListener(v -> showAddListDialog());
         barcode_button.setOnClickListener(view -> {
@@ -44,6 +47,17 @@ public class MainActivity extends AppCompatActivity {
             intent.putStringArrayListExtra("userLists", userLists);
             startActivity(intent);
         });
+
+        shopList.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, ShopList.class);
+            startActivity(intent);
+        });
+
+        ImageView currentActivityIcon = findViewById(R.id.myProductPage); // ID de l'image
+        currentActivityIcon.setColorFilter(getResources().getColor(R.color.selected_color), PorterDuff.Mode.SRC_IN);
+
+
+
     }
 
     private void showAddListDialog() {
