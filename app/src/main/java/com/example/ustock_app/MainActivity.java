@@ -28,7 +28,8 @@ public class MainActivity extends AppCompatActivity {
 
         listsContainer = findViewById(R.id.listsContainer);
         sharedPreferences = getSharedPreferences("USTOCK_PREFS", Context.MODE_PRIVATE);
-        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()));
+        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()))
+        ;
 
         for (String list : userLists) {
             addListToUI(list);
