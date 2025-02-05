@@ -1,6 +1,10 @@
-package com.example.ustock_app; // Remplace par ton nom de package
+package com.example.ustock_app;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -8,6 +12,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // Charge le layout XML
+        setContentView(R.layout.activity_main);
+
+        LinearLayout textView = findViewById(R.id.All_Layout);
+
+        // Définir l'action lors du clic sur le TextView
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AllPageActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 }
