@@ -1,18 +1,14 @@
 package com.example.ustock_app;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
@@ -32,8 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
         listsContainer = findViewById(R.id.listsContainer);
         sharedPreferences = getSharedPreferences("USTOCK_PREFS", Context.MODE_PRIVATE);
-        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()))
-        ;
+        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()));
 
         for (String list : userLists) {
             addListToUI(list);
@@ -74,6 +69,12 @@ public class MainActivity extends AppCompatActivity {
         listView.setPadding(16, 16, 16, 16);
         listView.setBackground(getResources().getDrawable(R.drawable.rounded_corner));
         listView.setOnClickListener(v -> openListActivity(listName));
+
+        listView.setOnLongClickListener(v -> {
+            showDeleteConfirmationDialog(listName, listView);
+            return true;
+        });
+
         listsContainer.addView(listView);
     }
 
@@ -81,6 +82,26 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, ListDetailActivity.class);
         intent.putExtra("list_name", listName);
         startActivity(intent);
+    }
+
+    private void showDeleteConfirmationDialog(String listName, View listView) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Supprimer la liste");
+        builder.setMessage("Voulez-vous vraiment supprimer cette liste ?");
+        builder.setPositiveButton("Supprimer", (dialog, which) -> {
+            userLists.remove(listName);
+            listsContainer.removeView(listView);
+            removeListData(listName);
+            saveLists();
+        });
+        builder.setNegativeButton("Annuler", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void removeListData(String listName) {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.remove(listName);
+        editor.apply();
     }
 
     private void saveLists() {
