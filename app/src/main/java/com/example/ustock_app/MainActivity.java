@@ -15,6 +15,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         LinearLayout textView = findViewById(R.id.All_Layout);
+        Button barcode_button = findViewById(R.id.barcode_button);
 
         // Définir l'action lors du clic sur le TextView
         textView.setOnClickListener(new View.OnClickListener() {
@@ -22,6 +23,14 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, AllPageActivity.class);
                 startActivity(intent);
+            }
+        });
+
+        barcode_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+               Intent intent = new Intent(MainActivity.this, BarcodeScannerActivity.class);
+               startActivity(intent);
             }
         });
     }
