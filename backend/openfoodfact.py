@@ -45,7 +45,8 @@ def fetch_product_from_api(barcode):
                 "barcode": barcode,
                 "product_name": data['product'].get('product_name', 'Inconnu'),
                 "brand": data['product'].get('brands', 'Non spécifié'),
-                "quantity": data['product'].get('quantity', 'Non spécifié'),
+                "content_size": data['product'].get('quantity', 'Non spécifié'),
+                "nutriscore": data['product'].get('nutriscore_grade', None),
                 "image_url": data['product'].get('image_front_url', None)
             }
     return None
@@ -55,18 +56,26 @@ def insert_product_into_db(product):
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        sql = """INSERT INTO products (barcode, product_name, brand, quantity, image_url, created_at)
-                 VALUES (%s, %s, %s, %s, %s, NOW())"""
-        values = (product["barcode"], product["product_name"], product["brand"], product["quantity"], product["image_url"])
-        
+
+        VALID_NUTRISCORE = {'a', 'b', 'c', 'd', 'e'}
+        # Vérification que le Nutri-Score est valide, sinon mettre NULL
+        nutriscore = product["nutriscore"].lower() if product["nutriscore"] in VALID_NUTRISCORE else None
+
+        sql = """INSERT INTO products (barcode, product_name, brand, content_size, nutriscore, image_url, created_at)
+                 VALUES (%s, %s, %s, %s, %s, %s, NOW())"""
+        values = (product["barcode"], product["product_name"], product["brand"], product["content_size"], nutriscore, product["image_url"])
+
         cursor.execute(sql, values)
         conn.commit()
+
         print(f"✅ Produit ajouté : {product['product_name']} ({product['barcode']})")
-        
+        print(f"📊 Nutri-Score inséré : {nutriscore}")
+
         cursor.close()
         conn.close()
     except mysql.connector.Error as err:
         print(f"❌ Erreur MySQL : {err}")
+
 
 # 🚀 Fonction principale : Vérifie et ajoute un produit
 def add_product(barcode):
@@ -75,6 +84,7 @@ def add_product(barcode):
     else:
         product = fetch_product_from_api(barcode)
         if product:
+            print(f"🔍 Produit trouvé : {product['product_name']} ({barcode}) ({product['nutriscore']})")
             insert_product_into_db(product)
         else:
             print(f"❌ Aucun produit trouvé pour {barcode}.")
