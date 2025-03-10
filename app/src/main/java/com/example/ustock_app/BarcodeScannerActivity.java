@@ -4,12 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanOptions;
@@ -52,22 +49,10 @@ public class BarcodeScannerActivity extends AppCompatActivity {
     }
 
     private void showAddToListDialog(String scannedCode) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Ajouter l'article à une liste");
-        ListView listView = new ListView(this);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, userLists);
-        listView.setAdapter(adapter);
-        listView.setOnItemClickListener((parent, view, position, id) -> {
-            String selectedList = userLists.get(position);
-            saveItemToList(selectedList, scannedCode);
-            Toast.makeText(this, "Article ajouté à " + selectedList, Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(BarcodeScannerActivity.this, MainActivity.class);
-            startActivity(intent);
-            finish();
-        });
-        builder.setView(listView);
-        builder.setNegativeButton("Annuler", (dialog, which) -> dialog.cancel());
-        builder.show();
+        Intent intent = new Intent(BarcodeScannerActivity.this, AddProductActivity.class);
+        intent.putExtra("scanned_code", scannedCode);
+        startActivity(intent);
+        finish(); // Ferme BarcodeScannerActivity après l'ouverture de AddProductActivity
     }
 
     private void saveItemToList(String listName, String item) {

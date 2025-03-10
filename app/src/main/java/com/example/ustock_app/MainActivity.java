@@ -5,12 +5,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
-import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.ListView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
@@ -19,9 +18,11 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
-    private LinearLayout listsContainer;
+    private ListView listsContainer;
     private ArrayList<String> userLists;
+    private ArrayAdapter<String> adapter;
     private SharedPreferences sharedPreferences;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,16 +31,21 @@ public class MainActivity extends AppCompatActivity {
 
         listsContainer = findViewById(R.id.listsContainer);
         sharedPreferences = getSharedPreferences("USTOCK_PREFS", Context.MODE_PRIVATE);
-        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()))
-        ;
+        userLists = new ArrayList<>(sharedPreferences.getStringSet("userLists", new HashSet<>()));
 
-        for (String list : userLists) {
-            addListToUI(list);
-        }
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, userLists);
+        listsContainer.setAdapter(adapter);
+
+        listsContainer.setOnItemClickListener((parent, view, position, id) -> openListActivity(userLists.get(position)));
+        listsContainer.setOnItemLongClickListener((parent, view, position, id) -> {
+            showDeleteConfirmationDialog(userLists.get(position));
+            return true;
+        });
 
         Button barcode_button = findViewById(R.id.addArticleButton);
         Button addListButton = findViewById(R.id.addListButton);
         ImageView shopList = findViewById(R.id.shopListPageButton);
+
 
         addListButton.setOnClickListener(v -> showAddListDialog());
         barcode_button.setOnClickListener(view -> {
@@ -56,8 +62,6 @@ public class MainActivity extends AppCompatActivity {
         ImageView currentActivityIcon = findViewById(R.id.myProductPage); // ID de l'image
         currentActivityIcon.setColorFilter(getResources().getColor(R.color.selected_color), PorterDuff.Mode.SRC_IN);
 
-
-
     }
 
     private void showAddListDialog() {
@@ -67,30 +71,14 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(input);
         builder.setPositiveButton("Ajouter", (dialog, which) -> {
             String listName = input.getText().toString().trim();
-            if (!listName.isEmpty()) {
-                addListToUI(listName);
+            if (!listName.isEmpty() && !userLists.contains(listName)) {
                 userLists.add(listName);
                 saveLists();
+                adapter.notifyDataSetChanged();
             }
         });
         builder.setNegativeButton("Annuler", (dialog, which) -> dialog.cancel());
         builder.show();
-    }
-
-    private void addListToUI(String listName) {
-        TextView listView = new TextView(this);
-        listView.setText(listName);
-        listView.setTextSize(18);
-        listView.setPadding(16, 16, 16, 16);
-        listView.setBackground(getResources().getDrawable(R.drawable.rounded_corner));
-        listView.setOnClickListener(v -> openListActivity(listName));
-
-        listView.setOnLongClickListener(v -> {
-            showDeleteConfirmationDialog(listName, listView);
-            return true;
-        });
-
-        listsContainer.addView(listView);
     }
 
     private void openListActivity(String listName) {
@@ -99,24 +87,17 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void showDeleteConfirmationDialog(String listName, View listView) {
+    private void showDeleteConfirmationDialog(String listName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Supprimer la liste");
         builder.setMessage("Voulez-vous vraiment supprimer cette liste ?");
         builder.setPositiveButton("Supprimer", (dialog, which) -> {
             userLists.remove(listName);
-            listsContainer.removeView(listView);
-            removeListData(listName);
             saveLists();
+            adapter.notifyDataSetChanged();
         });
         builder.setNegativeButton("Annuler", (dialog, which) -> dialog.dismiss());
         builder.show();
-    }
-
-    private void removeListData(String listName) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove(listName);
-        editor.apply();
     }
 
     private void saveLists() {
