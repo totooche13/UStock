@@ -1,5 +1,6 @@
 package com.example.ustock_app;
 
+import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -18,6 +19,13 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import android.os.AsyncTask;
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class AddProductActivity extends AppCompatActivity {
 
@@ -97,9 +105,98 @@ public class AddProductActivity extends AppCompatActivity {
             }
         });
 
+        // Appel de la méthode fetchProductInfo si le code-barres est disponible
+        if (scannedCode != null && !scannedCode.isEmpty()) {
+            fetchProductInfo(scannedCode); // Remplir automatiquement le nom et l'image
+        }
+
         addProductButton.setOnClickListener(v -> saveProduct());
 
         cancelProductButton.setOnClickListener(view -> finish());
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private void fetchProductInfo(String barcode) {
+        new AsyncTask<Void, Void, JSONObject>() {
+            @Override
+            protected JSONObject doInBackground(Void... voids) {
+                String apiUrl = "https://api.ustock.totooche.fr:8443/products/" + barcode;
+                try {
+                    // 1. Essayer de récupérer le produit avec GET
+                    HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
+                    connection.setRequestMethod("GET");
+
+                    if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                        return parseResponse(connection);
+                    } else if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                        // 2. Si non trouvé, essayer de l'ajouter avec POST
+                        if (addProductToDatabase(barcode)) {
+                            // 3. Après l'ajout, refaire un GET
+                            connection = (HttpURLConnection) new URL(apiUrl).openConnection();
+                            connection.setRequestMethod("GET");
+                            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                                return parseResponse(connection);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(JSONObject jsonObject) {
+                if (jsonObject != null) {
+                    try {
+                        if (jsonObject.has("product_name")) {
+                            productName.setText(jsonObject.getString("product_name"));
+                        }
+                        if (jsonObject.has("brand")) {
+                            String brand = jsonObject.getString("brand");
+                            // Tu peux afficher la marque ici si nécessaire
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    Toast.makeText(AddProductActivity.this, "Erreur de récupération des informations", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }.execute();
+    }
+
+    // Méthode pour envoyer une requête POST si le produit n'existe pas
+    private boolean addProductToDatabase(String barcode) {
+        try {
+            String apiUrl = "https://api.ustock.totooche.fr:8443/products/?barcode=" + barcode;
+            HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setDoOutput(true);
+
+            // Envoyer une requête POST avec un corps vide
+            connection.getOutputStream().write("".getBytes());
+            connection.getOutputStream().flush();
+            connection.getOutputStream().close();
+
+            return connection.getResponseCode() == HttpURLConnection.HTTP_CREATED || connection.getResponseCode() == HttpURLConnection.HTTP_OK;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Méthode pour lire et parser la réponse JSON
+    private JSONObject parseResponse(HttpURLConnection connection) throws Exception {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
+        }
+        reader.close();
+        return new JSONObject(response.toString());
     }
 
     private void showDatePickerDialog() {
