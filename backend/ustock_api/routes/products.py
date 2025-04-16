@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-import models, schemas
-from database import get_db
+from ustock_api import schemas, models
+from ustock_api.database import get_db
 
 import sys
 import os

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Date, Enum
 from sqlalchemy.orm import relationship
-from database import Base
+from ustock_api.database import Base
+
 
 class Family(Base):  # Ajout de la table families
     __tablename__ = "families"
@@ -53,4 +54,5 @@ class Stock(Base):
 
     product = relationship("Product")
     user = relationship("User")
+
 

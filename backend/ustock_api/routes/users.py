@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, pwd_context
-from database import get_db
-from schemas import UserCreate, UserResponse, UserLogin, TokenResponse
-import models
+from ustock_api.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, pwd_context
+from ustock_api.database import get_db
+from ustock_api.schemas import UserCreate, UserResponse, UserLogin, TokenResponse
+import ustock_api.models as models
 
 router = APIRouter(prefix="/users", tags=["Utilisateurs"])
 
@@ -51,3 +51,5 @@ def login_for_access_token(form_data: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: UserResponse = Depends(get_current_user)):
     return current_user
+
+

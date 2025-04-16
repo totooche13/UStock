@@ -41,6 +41,7 @@ def fetch_product_from_api(barcode):
     if response.status_code == 200:
         data = response.json()
         if 'product' in data and data['product'].get('product_name'):
+            print(data['product'].get('categories', 'Inconnu'))
             return {
                 "barcode": barcode,
                 "product_name": data['product'].get('product_name', 'Inconnu'),

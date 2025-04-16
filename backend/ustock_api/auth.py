@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
-from database import get_db
-import models
+from ustock_api.database import get_db
+import ustock_api.models as models
 
 # Clé secrète pour signer les tokens JWT (CHANGE-LA pour plus de sécurité)
 SECRET_KEY = "supersecretkey"

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status   
 from sqlalchemy.orm import Session
-from auth import get_current_user
-from database import get_db
-from schemas import StockCreate, StockResponse
-import models
+from ustock_api.auth import get_current_user
+from ustock_api.database import get_db
+from ustock_api.schemas import StockCreate, StockResponse
+from ustock_api import models
+
 
 router = APIRouter(prefix="/stocks", tags=["Stocks"])
 
@@ -14,10 +15,11 @@ def add_product_to_user(stock_data: StockCreate, db: Session = Depends(get_db), 
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
 
-    # Vérifier si ce produit est déjà dans le stock de l'utilisateur
+    # Vérifier si ce produit est déjà dans le stock de l'utilisateur avec la MÊME DATE D'EXPIRATION
     existing_stock = db.query(models.Stock).filter(
         models.Stock.user_id == current_user.id,
-        models.Stock.product_id == stock_data.product_id
+        models.Stock.product_id == stock_data.product_id,
+        models.Stock.expiration_date == stock_data.expiration_date  # Ajout de cette condition
     ).first()
 
     if existing_stock:
