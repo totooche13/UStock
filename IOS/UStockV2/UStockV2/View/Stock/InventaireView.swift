@@ -97,7 +97,7 @@ struct InventaireView: View {
                                 }
                             }
                             Spacer()
-                            NavigationLink(destination: Text("Statistiques")) {
+                            NavigationLink(destination: StatsView()) {
                                 VStack(spacing: 0) {
                                     Image(systemName: "chart.bar.fill")
                                         .font(.system(size: 30))
@@ -134,9 +134,7 @@ struct InventaireView: View {
             }
             .onAppear {
                 // Charger les produits quand la vue apparaît
-                if stockViewModel.stocks.isEmpty {
-                    stockViewModel.fetchStocks()
-                }
+                stockViewModel.fetchStocks()
             }
             .alert(stockViewModel.errorMessage ?? "Erreur", isPresented: $stockViewModel.showErrorAlert) {
                 Button("OK", role: .cancel) {}

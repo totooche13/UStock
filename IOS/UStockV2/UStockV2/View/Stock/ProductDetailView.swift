@@ -6,6 +6,14 @@ struct ProductDetailView: View {
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
     @State private var showDeleteSuccess = false
+    
+    // Pour le popup de sélection de quantité
+    @State private var showQuantityPopup = false
+    @State private var selectedAction: String = ""  // "consumed" ou "wasted"
+    @State private var popupQuantity: Int = 1
+    @State private var showErrorAlert = false
+    @State private var errorMessage: String = ""
+    
     @Environment(\.dismiss) private var dismiss
     
     // ViewModel pour gérer les interactions avec l'API
@@ -90,7 +98,7 @@ struct ProductDetailView: View {
                     // Boutons Jeté/Consommé
                     HStack(spacing: 0) {
                         Button(action: {
-                            markAsDiscarded()
+                            showDiscardPopup()  // Appel à la nouvelle méthode
                         }) {
                             HStack {
                                 Image(systemName: "trash")
@@ -106,7 +114,7 @@ struct ProductDetailView: View {
                         }
                         
                         Button(action: {
-                            markAsConsumed()
+                            showConsumePopup()  // Appel à la nouvelle méthode
                         }) {
                             HStack {
                                 Image(systemName: "fork.knife")
@@ -197,7 +205,104 @@ struct ProductDetailView: View {
                 self.notificationAuthorized = authorized
             }
         }
+        .sheet(isPresented: $showQuantityPopup) {
+            ZStack {
+                // Fond d'écran
+                Color(hex: "C1DDF9").edgesIgnoringSafeArea(.all)
+                
+                VStack(spacing: 30) {
+                    // Titre simple
+                    Text(selectedAction == "consumed" ? "Quantité consommée" : "Quantité jetée")
+                        .font(.custom("ChauPhilomeneOne-Regular", size: 28))
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                        .padding(.top, 50)
+                    
+                    // Contrôle de quantité simplifié
+                    HStack(spacing: 40) {
+                        Button(action: {
+                            if popupQuantity > 1 {
+                                popupQuantity -= 1
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: "689FA7"))
+                                    .frame(width: 70, height: 70)
+                                
+                                Text("-")
+                                    .font(.system(size: 40, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        Text("\(popupQuantity)")
+                            .font(.system(size: 60, weight: .bold))
+                            .frame(minWidth: 80)
+                            .foregroundColor(.black)
+                        
+                        Button(action: {
+                            if popupQuantity < produit.quantite {
+                                popupQuantity += 1
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(hex: "689FA7"))
+                                    .frame(width: 70, height: 70)
+                                
+                                Text("+")
+                                    .font(.system(size: 40, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 30)
+                    
+                    // Quantité disponible (en petit)
+                    Text("Disponible: \(produit.quantite)")
+                        .font(.system(size: 18))
+                        .foregroundColor(.gray)
+                        .padding(.bottom, 20)
+                    
+                    // Boutons d'action
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            showQuantityPopup = false
+                        }) {
+                            Text("Annuler")
+                                .font(.system(size: 22, weight: .medium))
+                                .padding(.vertical, 16)
+                                .frame(maxWidth: .infinity)
+                                .background(Color.gray.opacity(0.2))
+                                .foregroundColor(.black)
+                                .cornerRadius(20)
+                        }
+                        
+                        Button(action: {
+                            showQuantityPopup = false
+                            processAction()
+                        }) {
+                            Text("Confirmer")
+                                .font(.system(size: 22, weight: .medium))
+                                .padding(.vertical, 16)
+                                .frame(maxWidth: .infinity)
+                                .background(Color(hex: "689FA7"))
+                                .foregroundColor(.white)
+                                .cornerRadius(20)
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 50)
+                }
+                .padding(.horizontal, 30)
+            }
+            .presentationDetents([.medium])  // Utiliser medium au lieu d'une hauteur fixe
+            .presentationBackground(Color(hex: "C1DDF9"))  // Fond bleu clair
+            .presentationCornerRadius(25)
+        }
     }
+    
     
     // MARK: - Composants de vue
     
@@ -300,7 +405,6 @@ struct ProductDetailView: View {
                 Button(action: {
                     if quantity > 1 {
                         quantity -= 1
-                        updateQuantity()
                     }
                 }) {
                     Text("-")
@@ -315,8 +419,9 @@ struct ProductDetailView: View {
                     .multilineTextAlignment(.center)
                 
                 Button(action: {
-                    quantity += 1
-                    updateQuantity()
+                    if quantity < produit.quantite {
+                        quantity += 1
+                    }
                 }) {
                     Text("+")
                         .font(.system(size: 30, weight: .bold))
@@ -377,19 +482,56 @@ struct ProductDetailView: View {
         print("Mettre à jour la quantité : \(quantity)")
     }
     
-    // Méthode pour marquer le produit comme jeté
-    private func markAsDiscarded() {
-        // Cette fonction sera implémentée plus tard
-        print("Produit marqué comme jeté")
+    // Méthode pour afficher le popup pour jeter
+    private func showDiscardPopup() {
+        selectedAction = "wasted"
+        popupQuantity = 1  // Réinitialiser à 1 pour chaque nouveau popup
+        showQuantityPopup = true
+    }
+
+    // Méthode pour afficher le popup pour consommer
+    private func showConsumePopup() {
+        selectedAction = "consumed"
+        popupQuantity = 1  // Réinitialiser à 1 pour chaque nouveau popup
+        showQuantityPopup = true
+    }
+
+    // Méthode pour traiter l'action après sélection de la quantité
+    private func processAction() {
+        guard let stockId = produit.stockId else {
+            errorMessage = "Erreur: identifiant de stock manquant"
+            showErrorAlert = true
+            return
+        }
+        
+        // Vérifier que la quantité est valide
+        if popupQuantity > produit.quantite {
+            errorMessage = "Erreur: Vous ne pouvez pas sélectionner plus de produits que disponibles"
+            showErrorAlert = true
+            return
+        }
+        
+        let status: ProductStatus = selectedAction == "consumed" ? .consumed : .wasted
+        let finalQuantity = popupQuantity
+        
+        // Fermer la vue immédiatement
         dismiss()
+        
+        // Envoyer la requête en arrière-plan
+        ProductConsumptionService.shared.markProductStatus(
+            stockId: stockId,
+            quantity: finalQuantity,
+            status: status
+        ) { success in
+            if success {
+                print("✅ Produit marqué comme \(status.rawValue): \(finalQuantity) unités")
+            } else {
+                print("❌ Erreur lors du marquage du produit")
+            }
+        }
     }
     
-    // Méthode pour marquer le produit comme consommé
-    private func markAsConsumed() {
-        // Cette fonction sera implémentée plus tard
-        print("Produit marqué comme consommé")
-        dismiss()
-    }
+    
     
     // Méthode pour supprimer le produit
     private func deleteProduct() {
@@ -423,3 +565,5 @@ struct Triangle: Shape {
         return path
     }
 }
+
+
