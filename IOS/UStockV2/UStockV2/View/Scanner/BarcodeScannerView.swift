@@ -90,15 +90,8 @@ struct BarcodeScannerView: View {
                     Spacer()
                 }
             }
-            .navigationTitle("Scanner")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") {
-                        dismiss()
-                    }
-                }
-            }
+            
+            
             .onChange(of: scannedCode) { _, newCode in
                 if let barcode = newCode {
                     viewModel.fetchProductInfo(barcode: barcode)

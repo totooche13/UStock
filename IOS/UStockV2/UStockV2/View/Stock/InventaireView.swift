@@ -67,7 +67,7 @@ struct InventaireView: View {
                     VStack(spacing: 0) {
                         HStack {
                             Spacer()
-                            NavigationLink(destination: Text("Inventaire")) {
+                            NavigationLink(destination: InventaireView()) {
                                 VStack(spacing: 0) {
                                     Image(systemName: "archivebox.fill")
                                         .font(.system(size: 30))
@@ -88,7 +88,7 @@ struct InventaireView: View {
                             // Espace pour le bouton Scanner qui va "flotter" au-dessus
                             Spacer()
                             Spacer()
-                            NavigationLink(destination: Text("Profil")) {
+                            NavigationLink(destination: ProfileView()) {
                                 VStack(spacing: 0) {
                                     Image(systemName: "person.fill")
                                         .font(.system(size: 30))

@@ -4,7 +4,12 @@ struct ProductDetailView: View {
     let produit: Produit
     @State private var quantity: Int
     @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
+    @State private var showDeleteSuccess = false
     @Environment(\.dismiss) private var dismiss
+    
+    // ViewModel pour gérer les interactions avec l'API
+    @StateObject private var stockViewModel = StockViewModel()
     
     // État pour le test de notification
     @State private var notificationAuthorized = false
@@ -124,16 +129,25 @@ struct ProductDetailView: View {
                     Button(action: {
                         showDeleteConfirmation = true
                     }) {
-                        Text("SUPPRESSION")
-                            .font(.custom("ChauPhilomeneOne-Regular", size: 22))
-                            .fontWeight(.bold)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.red)
-                            .foregroundColor(.white)
-                            .cornerRadius(30)
-                            .shadow(radius: 3)
+                        HStack {
+                            if isDeleting {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .padding(.trailing, 5)
+                            }
+                            
+                            Text("SUPPRESSION")
+                                .font(.custom("ChauPhilomeneOne-Regular", size: 22))
+                                .fontWeight(.bold)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(30)
+                        .shadow(radius: 3)
                     }
+                    .disabled(isDeleting)
                     .padding(.horizontal)
                     .padding(.bottom, 30)
                 }
@@ -154,6 +168,18 @@ struct ProductDetailView: View {
             }
         } message: {
             Text("Voulez-vous vraiment supprimer ce produit de votre inventaire ?")
+        }
+        .alert("Produit supprimé", isPresented: $showDeleteSuccess) {
+            Button("OK") {
+                dismiss()
+            }
+        } message: {
+            Text("Le produit a été retiré de votre inventaire avec succès.")
+        }
+        .alert("Erreur", isPresented: $stockViewModel.showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(stockViewModel.errorMessage ?? "Une erreur est survenue")
         }
         .alert("Autorisation de notification requise", isPresented: $showingPermissionAlert) {
             Button("Annuler", role: .cancel) {}
@@ -367,9 +393,22 @@ struct ProductDetailView: View {
     
     // Méthode pour supprimer le produit
     private func deleteProduct() {
-        // Cette fonction sera implémentée plus tard
-        print("Produit supprimé de l'inventaire")
-        dismiss()
+        guard let stockId = produit.stockId else {
+            print("❌ Impossible de supprimer : stockId manquant")
+            return
+        }
+        
+        isDeleting = true
+        
+        stockViewModel.deleteProduct(stockId: stockId) { success in
+            isDeleting = false
+            
+            if success {
+                print("✅ Suppression réussie !")
+                showDeleteSuccess = true
+            }
+            // En cas d'échec, l'alerte d'erreur sera affichée automatiquement par le ViewModel
+        }
     }
 }
 
@@ -382,25 +421,5 @@ struct Triangle: Shape {
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         path.closeSubpath()
         return path
-    }
-}
-
-#Preview {
-    NavigationView {
-        ProductDetailView(produit: Produit(
-            nom: "Canette Pepsi",
-            peremption: "10-04-25",
-            joursRestants: 30,
-            quantite: 1,
-            image: "🥤",
-            stockId: 1,
-            productDetails: ProductDetails(
-                barcode: "12345678",
-                brand: "Pepsi",
-                contentSize: "330ml",
-                nutriscore: "D",
-                imageUrl: "https://world.openfoodfacts.org/images/products/590/760/011/1702/front_fr.177.400.jpg"
-            )
-        ))
     }
 }

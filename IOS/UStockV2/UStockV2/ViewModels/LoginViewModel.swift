@@ -46,10 +46,9 @@ class LoginViewModel: ObservableObject {
                                let accessToken = json["access_token"] as? String,
                                let tokenType = json["token_type"] as? String {
                                 
-                                // Stocker le token complet (token_type + access_token)
+                                // Stocker le token via AuthManager
                                 let fullToken = "\(tokenType) \(accessToken)"
-                                UserDefaults.standard.set(fullToken, forKey: "authToken")
-                                print("Token stocké : \(fullToken)")
+                                AuthManager.shared.saveToken(fullToken)
                                 
                                 self.isAuthenticated = true
                                 self.errorMessage = nil

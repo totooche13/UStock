@@ -22,10 +22,11 @@ class User(Base):
     gender = Column(Enum("homme", "femme"), nullable=False)
     family_id = Column(Integer, ForeignKey("families.id", ondelete="SET NULL"), nullable=True)
     password_hash = Column(String(255), nullable=False)
+    profile_image_url = Column(String(255), nullable=True)  # Nouveau champ
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
 
-    family = relationship("Family", backref="users")  # Relation SQLAlchemy
+    family = relationship("Family", backref="users")
 
 
 class Product(Base):

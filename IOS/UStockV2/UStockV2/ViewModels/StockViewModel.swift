@@ -25,6 +25,8 @@ class StockViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showErrorAlert = false
+    @Published var showSuccessMessage = false
+    @Published var successMessage: String?
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -133,6 +135,78 @@ class StockViewModel: ObservableObject {
                     print("❌ Mauvais code HTTP: \(httpResponse.statusCode)")
                     self.errorMessage = "Erreur serveur: \(httpResponse.statusCode)"
                     self.showErrorAlert = true
+                }
+            }
+        }.resume()
+    }
+    
+    // Nouvelle méthode pour supprimer un produit
+    func deleteProduct(stockId: Int, completion: @escaping (Bool) -> Void) {
+        guard let token = authToken else {
+            self.errorMessage = "Vous devez être connecté pour supprimer un produit"
+            self.showErrorAlert = true
+            completion(false)
+            return
+        }
+        
+        isLoading = true
+        
+        let url = URL(string: "https://api.ustock.totooche.fr:8443/stocks/\(stockId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(token, forHTTPHeaderField: "Authorization")
+        
+        print("🗑️ Suppression du produit avec stockId: \(stockId)")
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                if let error = error {
+                    print("❌ Erreur réseau : \(error.localizedDescription)")
+                    self.errorMessage = "Erreur lors de la suppression du produit: \(error.localizedDescription)"
+                    self.showErrorAlert = true
+                    completion(false)
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("❌ Pas de réponse HTTP")
+                    self.errorMessage = "Pas de réponse du serveur"
+                    self.showErrorAlert = true
+                    completion(false)
+                    return
+                }
+                
+                // Log du statut
+                print("🔄 Statut de la réponse: \(httpResponse.statusCode)")
+                
+                if httpResponse.statusCode == 200 {
+                    // Si la suppression est réussie, on rafraîchit la liste des stocks
+                    print("✅ Produit supprimé avec succès!")
+                    
+                    // Retirer le produit de la liste locale
+                    if let index = self.stocks.firstIndex(where: { $0.stockId == stockId }) {
+                        self.stocks.remove(at: index)
+                    }
+                    
+                    self.successMessage = "Produit supprimé avec succès"
+                    self.showSuccessMessage = true
+                    completion(true)
+                } else {
+                    print("❌ Échec de la suppression, code HTTP: \(httpResponse.statusCode)")
+                    
+                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                        print("📦 Réponse d'erreur: \(responseString)")
+                    }
+                    
+                    self.errorMessage = "Erreur lors de la suppression: Code \(httpResponse.statusCode)"
+                    self.showErrorAlert = true
+                    completion(false)
                 }
             }
         }.resume()
