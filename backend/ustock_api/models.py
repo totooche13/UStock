@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Date, Enum
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Date, Enum, DECIMAL
 from sqlalchemy.orm import relationship
 from ustock_api.database import Base
+from sqlalchemy.sql import func
 
 
 class Family(Base):  # Ajout de la table families
@@ -40,6 +41,8 @@ class Product(Base):
     nutriscore = Column(Enum("a", "b", "c", "d", "e"))
     image_url = Column(String(255))
     created_at = Column(TIMESTAMP)
+    price = Column(DECIMAL(10, 2), nullable=True)
+
 
 
 class Stock(Base):
@@ -57,3 +60,17 @@ class Stock(Base):
     user = relationship("User")
 
 
+class ProductConsumption(Base):
+    __tablename__ = "product_consumption"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    stock_id = Column(Integer, nullable=True)  # Peut être NULL après suppression du stock
+    quantity = Column(Integer, nullable=False, default=1)
+    status = Column(Enum("consumed", "wasted"), nullable=False)
+    expiration_date = Column(Date, nullable=True)
+    consumption_date = Column(TIMESTAMP, nullable=False, default=func.now())
+
+    product = relationship("Product")
+    user = relationship("User")

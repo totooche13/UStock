@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 class ProductCreate(BaseModel):
     barcode: str
@@ -18,6 +18,8 @@ class ProductResponse(BaseModel):
     content_size: Optional[str]
     nutriscore: Optional[str]
     image_url: Optional[str]
+    price: Optional[float] = None
+
 
     class Config:
         from_attributes = True
@@ -45,9 +47,10 @@ class UserResponse(BaseModel):
     birth_date: date
     gender: str
     family_id: Optional[int]
+    profile_image_url: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserLogin(BaseModel):
     username: str
@@ -72,6 +75,29 @@ class StockResponse(BaseModel):
     quantity: int
     expiration_date: Optional[date]
     product: ProductResponse  # On inclut ici les détails du produit
+
+    class Config:
+        from_attributes = True
+
+
+
+
+
+class ProductConsumptionCreate(BaseModel):
+    stock_id: int
+    quantity: int = 1
+    status: str  # "consumed" ou "wasted"
+
+class ProductConsumptionResponse(BaseModel):
+    id: int
+    product_id: int
+    user_id: int
+    stock_id: Optional[int]
+    quantity: int
+    status: str
+    expiration_date: Optional[date]
+    consumption_date: datetime
+    product: ProductResponse
 
     class Config:
         from_attributes = True

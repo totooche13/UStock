@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from ustock_api.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user, pwd_context
 from ustock_api.database import get_db
 from ustock_api.schemas import UserCreate, UserResponse, UserLogin, TokenResponse
 import ustock_api.models as models
+from ustock_api.models import User
+import os
+import uuid
 
 router = APIRouter(prefix="/users", tags=["Utilisateurs"])
 
@@ -52,4 +55,30 @@ def login_for_access_token(form_data: UserLogin, db: Session = Depends(get_db)):
 def read_users_me(current_user: UserResponse = Depends(get_current_user)):
     return current_user
 
+
+@router.post("/me/profile-image")
+async def upload_profile_image(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),  # Utilisez models.User
+    db: Session = Depends(get_db)
+):
+    # Générer un nom de fichier unique
+    filename = f"profile_{current_user.id}_{uuid.uuid4()}.jpg"
+    file_location = f"static/profile_images/{filename}"
+    
+    # Créer le dossier s'il n'existe pas
+    os.makedirs(os.path.dirname(file_location), exist_ok=True)
+    
+    # Enregistrer le fichier
+    with open(file_location, "wb+") as file_object:
+        file_object.write(await file.read())
+    
+    # Construire l'URL
+    image_url = f"https://api.ustock.pro:8443/static/profile_images/{filename}"
+    
+    # Mettre à jour l'utilisateur en base de données
+    current_user.profile_image_url = image_url
+    db.commit()
+    
+    return {"filename": filename, "profile_image_url": image_url}
 
