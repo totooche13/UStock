@@ -6,7 +6,7 @@ class LoginViewModel: ObservableObject {
     @Published var showErrorAlert = false
     
     func login(username: String, password: String, completion: @escaping (Bool) -> Void) {
-        let url = URL(string: "https://api.ustock.totooche.fr:8443/users/login")!
+        let url = URL(string: "https://api.ustock.pro:8443/users/login")!
         let body: [String: String] = ["username": username, "password": password]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {

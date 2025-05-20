@@ -4,8 +4,8 @@ import Combine
 class ProductService {
     static let shared = ProductService()
     
-    private let baseURL = "https://api.ustock.totooche.fr:8443/products/"
-    private let stockURL = "https://api.ustock.totooche.fr:8443/stocks/"
+    private let baseURL = "https://api.ustock.pro:8443/products/"
+    private let stockURL = "https://api.ustock.pro:8443/stocks/"
     
     private init() {}
     

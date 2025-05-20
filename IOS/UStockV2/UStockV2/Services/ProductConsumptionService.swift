@@ -11,22 +11,12 @@ struct ConsumptionRequest: Codable {
     let status: String
 }
 
-struct ConsumptionStatTotal: Codable {
-    let consumed_count: Int
-    let wasted_count: Int
-    let total_count: Int
-    let waste_rate: Double
-}
 
-struct ConsumptionStats: Codable {
-    let total: ConsumptionStatTotal
-    let current_month: ConsumptionStatTotal
-}
 
 class ProductConsumptionService {
     static let shared = ProductConsumptionService()
     
-    private let baseURL = "https://api.ustock.totooche.fr:8443/consumption/"
+    private let baseURL = "https://api.ustock.pro:8443/consumption/"
     
     private init() {}
     
@@ -98,6 +88,7 @@ class ProductConsumptionService {
         }.resume()
     }
     
+    // Dans la méthode getStats
     func getStats(completion: @escaping (Result<ConsumptionStats, Error>) -> Void) {
         guard let url = URL(string: baseURL + "stats") else {
             completion(.failure(NSError(domain: "ProductConsumptionService", code: 0, userInfo: [NSLocalizedDescriptionKey: "URL invalide"])))

@@ -7,7 +7,7 @@ class RegisterViewModel: ObservableObject {
     
 
     func register(firstName: String, lastName: String, email: String, username: String, password: String, birthDate: Date, gender: String, completion: @escaping (Bool) -> Void) {
-        let url = URL(string: "https://api.ustock.totooche.fr:8443/users/register")!
+        let url = URL(string: "https://api.ustock.pro:8443/users/register")!
         /// let url = URL(string: "https://apiustock.ddnsfree.com:8443/users/register")!
         
         let formatter = DateFormatter()
