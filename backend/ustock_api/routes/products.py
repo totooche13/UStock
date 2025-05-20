@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ustock_api import schemas, models
 from ustock_api.database import get_db
-from ustock_api.price_estimator import PriceEstimator
 import requests
 import sys
 import os
@@ -24,7 +23,7 @@ def get_products(db: Session = Depends(get_db)):
 
 # ➕ Ajouter un produit via son code-barres
 @router.post("/")
-async def add_product_by_barcode(barcode: str, db: Session = Depends(get_db)):
+def add_product_by_barcode(barcode: str, db: Session = Depends(get_db)):
     # Vérifier si le produit est déjà en base
     if check_product_exists(barcode):
         raise HTTPException(status_code=409, detail="Le produit existe déjà en base.")
@@ -33,16 +32,6 @@ async def add_product_by_barcode(barcode: str, db: Session = Depends(get_db)):
     product = fetch_product_from_api(barcode)
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé sur Open Food Facts.")
-
-    # Estimer le prix en arrière-plan (ne bloque pas la création)
-    estimated_price = await PriceEstimator.estimate_price(
-        product_name=product["product_name"],
-        brand=product.get("brand"),
-        content_size=product.get("content_size")
-    )
-    
-    # Ajouter le prix estimé au produit
-    product["price"] = float(estimated_price)
 
     # Ajouter le produit en base
     insert_product_into_db(product)
@@ -88,27 +77,3 @@ def search_products(query: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur lors de la recherche: {str(e)}")
     
-
-@router.patch("/{product_id}/price")
-async def update_product_price(product_id: int, db: Session = Depends(get_db)):
-    """Met à jour le prix d'un produit existant avec l'IA"""
-    
-    # Rechercher le produit
-    product = db.query(models.Product).filter(models.Product.id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Produit non trouvé")
-    
-    # Estimer le prix
-    estimated_price = await PriceEstimator.estimate_price(
-        product_name=product.product_name,
-        brand=product.brand,
-        content_size=product.content_size
-    )
-    
-    # Mettre à jour le prix
-    product.price = estimated_price
-    db.commit()
-    
-    return {"message": "Prix mis à jour avec succès", "price": float(estimated_price)}
-
-

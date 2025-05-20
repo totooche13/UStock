@@ -18,7 +18,6 @@ class ProductResponse(BaseModel):
     content_size: Optional[str]
     nutriscore: Optional[str]
     image_url: Optional[str]
-    price: Optional[float] = None
 
 
     class Config:

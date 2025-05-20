@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Date, Enum, DECIMAL
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, Date, Enum
 from sqlalchemy.orm import relationship
 from ustock_api.database import Base
 from sqlalchemy.sql import func
@@ -41,7 +41,6 @@ class Product(Base):
     nutriscore = Column(Enum("a", "b", "c", "d", "e"))
     image_url = Column(String(255))
     created_at = Column(TIMESTAMP)
-    price = Column(DECIMAL(10, 2), nullable=True)
 
 
 
