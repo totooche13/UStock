@@ -88,7 +88,6 @@ class ProductConsumptionService {
         }.resume()
     }
     
-    // Dans la méthode getStats
     func getStats(completion: @escaping (Result<ConsumptionStats, Error>) -> Void) {
         guard let url = URL(string: baseURL + "stats") else {
             completion(.failure(NSError(domain: "ProductConsumptionService", code: 0, userInfo: [NSLocalizedDescriptionKey: "URL invalide"])))

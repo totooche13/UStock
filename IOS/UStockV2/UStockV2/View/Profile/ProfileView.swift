@@ -7,10 +7,17 @@ struct ProfileView: View {
     @State private var memberSince: String = "Mars 2025"
     @State private var showLogoutConfirmation = false
     @State private var showEditProfile = false
-    @State private var showImagePicker = false
+    @State private var showImageSourceSelector = false
+    @State private var showPhotoLibrary = false
+    @State private var showCamera = false
+    @State private var showDocumentPicker = false
     @State private var inputImage: UIImage?
     @State private var profileImage: Image?
     @State private var profileImageUrl: String? = nil
+    @State private var isUploadingImage = false
+    @State private var showUploadSuccess = false
+    @State private var uploadErrorMessage: String?
+    @State private var showUploadError = false
     
     var body: some View {
         NavigationStack {
@@ -25,32 +32,46 @@ struct ProfileView: View {
                             .foregroundColor(.black)
                             .padding(.top, 20)
                         
-                        // Photo de profil
+                        // Photo de profil avec sélecteur multiple
                         Button(action: {
-                            showImagePicker = true
+                            showImageSourceSelector = true
                         }) {
                             VStack {
-                                if let profileImage = profileImage {
-                                    profileImage
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 150, height: 150)
-                                        .clipShape(Circle())
-                                        .overlay(Circle().stroke(Color(hex: "156585"), lineWidth: 4))
-                                } else {
-                                    Image(systemName: "person.circle.fill")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 150, height: 150)
-                                        .foregroundColor(Color(hex: "156585"))
+                                ZStack {
+                                    if let profileImage = profileImage {
+                                        profileImage
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 150, height: 150)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color(hex: "156585"), lineWidth: 4))
+                                    } else {
+                                        Image(systemName: "person.circle.fill")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 150, height: 150)
+                                            .foregroundColor(Color(hex: "156585"))
+                                    }
+                                    
+                                    // Indicateur de chargement pendant l'upload
+                                    if isUploadingImage {
+                                        Circle()
+                                            .fill(Color.black.opacity(0.5))
+                                            .frame(width: 150, height: 150)
+                                        
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                            .scaleEffect(1.5)
+                                    }
                                 }
                                 
-                                Text("Modifier la photo")
+                                Text(isUploadingImage ? "Upload en cours..." : "Modifier la photo")
                                     .font(.system(size: 16))
                                     .foregroundColor(Color(hex: "156585"))
                                     .padding(.top, 5)
                             }
                         }
+                        .disabled(isUploadingImage)
                         
                         // Infos utilisateur
                         VStack(spacing: 10) {
@@ -123,8 +144,44 @@ struct ProfileView: View {
             .sheet(isPresented: $showEditProfile) {
                 EditProfileView(userName: $userName, userEmail: $userEmail)
             }
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $inputImage, completion: loadImage)
+            // Action Sheet pour choisir la source d'image
+            .confirmationDialog("Choisir une photo", isPresented: $showImageSourceSelector) {
+                Button("Album photo") {
+                    showPhotoLibrary = true
+                }
+                
+                Button("Appareil photo") {
+                    showCamera = true
+                }
+                
+                Button("Fichiers") {
+                    showDocumentPicker = true
+                }
+                
+                Button("Annuler", role: .cancel) {}
+            }
+            // Sélecteur de photos
+            .sheet(isPresented: $showPhotoLibrary) {
+                PhotoPicker(image: $inputImage, completion: loadImage)
+            }
+            // Caméra
+            .sheet(isPresented: $showCamera) {
+                CameraPicker(image: $inputImage, completion: loadImage)
+            }
+            // Sélecteur de fichiers
+            .sheet(isPresented: $showDocumentPicker) {
+                DocumentPicker(image: $inputImage, completion: loadImage)
+            }
+            // Alertes pour l'upload
+            .alert("Photo mise à jour", isPresented: $showUploadSuccess) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Votre photo de profil a été mise à jour avec succès.")
+            }
+            .alert("Erreur upload", isPresented: $showUploadError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(uploadErrorMessage ?? "Une erreur est survenue lors de l'upload de l'image")
             }
             .onAppear {
                 fetchUserProfile()
@@ -145,8 +202,12 @@ struct ProfileView: View {
     private func uploadProfileImage(image: UIImage) {
         guard let imageData = image.jpegData(compressionQuality: 0.8),
               let token = UserDefaults.standard.string(forKey: "authToken") else {
+            uploadErrorMessage = "Erreur: Token d'authentification manquant"
+            showUploadError = true
             return
         }
+        
+        isUploadingImage = true
         
         let url = URL(string: "https://api.ustock.pro:8443/users/me/profile-image")!
         
@@ -170,20 +231,33 @@ struct ProfileView: View {
         request.httpBody = body
         
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("❌ Erreur upload: \(error.localizedDescription)")
-                return
-            }
-            
-            if let response = response as? HTTPURLResponse {
-                print("✅ Statut upload: \(response.statusCode)")
+            DispatchQueue.main.async {
+                self.isUploadingImage = false
                 
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    print("📦 Réponse: \(responseString)")
+                if let error = error {
+                    print("❌ Erreur upload: \(error.localizedDescription)")
+                    self.uploadErrorMessage = "Erreur réseau: \(error.localizedDescription)"
+                    self.showUploadError = true
+                    return
+                }
+                
+                if let response = response as? HTTPURLResponse {
+                    print("✅ Statut upload: \(response.statusCode)")
                     
-                    // Rafraîchir le profil pour obtenir la nouvelle URL
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        fetchUserProfile()
+                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                        print("📦 Réponse: \(responseString)")
+                    }
+                    
+                    if response.statusCode == 200 {
+                        self.showUploadSuccess = true
+                        
+                        // Rafraîchir le profil pour obtenir la nouvelle URL
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            self.fetchUserProfile()
+                        }
+                    } else {
+                        self.uploadErrorMessage = "Erreur serveur: Code \(response.statusCode)"
+                        self.showUploadError = true
                     }
                 }
             }
@@ -271,15 +345,15 @@ struct ProfileView: View {
     }
 }
 
-// Sélectionneur d'image
-struct ImagePicker: UIViewControllerRepresentable {
+// MARK: - Photo Library Picker
+struct PhotoPicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     var completion: () -> Void
     
     class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        var parent: ImagePicker
+        var parent: PhotoPicker
         
-        init(_ parent: ImagePicker) {
+        init(_ parent: PhotoPicker) {
             self.parent = parent
         }
         
@@ -302,6 +376,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
         config.filter = .images
+        config.selectionLimit = 1
         
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
@@ -309,6 +384,94 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+}
+
+// MARK: - Camera Picker
+struct CameraPicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    var completion: () -> Void
+    
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        var parent: CameraPicker
+        
+        init(_ parent: CameraPicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let selectedImage = info[.originalImage] as? UIImage {
+                parent.image = selectedImage
+                parent.completion()
+            }
+            picker.dismiss(animated: true)
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
+    }
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .camera
+        picker.allowsEditing = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+}
+
+// MARK: - Document Picker
+struct DocumentPicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    var completion: () -> Void
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        var parent: DocumentPicker
+        
+        init(_ parent: DocumentPicker) {
+            self.parent = parent
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            
+            // Vérifier si c'est une image
+            if url.startAccessingSecurityScopedResource() {
+                defer { url.stopAccessingSecurityScopedResource() }
+                
+                if let imageData = try? Data(contentsOf: url),
+                   let image = UIImage(data: imageData) {
+                    DispatchQueue.main.async {
+                        self.parent.image = image
+                        self.parent.completion()
+                    }
+                }
+            }
+        }
+        
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            controller.dismiss(animated: true)
+        }
+    }
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.image])
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
