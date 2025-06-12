@@ -63,8 +63,9 @@ class RegisterViewModel: ObservableObject {
                     }
 
                     if httpResponse.statusCode == 200 {
-                        self.isRegistered = true
-                        completion(true)
+                        print("✅ Inscription réussie, connexion automatique en cours...")
+                        // 🔹 NOUVELLE ÉTAPE : Connexion automatique après inscription
+                        self.autoLogin(username: username, password: password, completion: completion)
                     } else {
                         self.errorMessage = "Erreur lors de l'inscription"
                         self.showErrorAlert = true
@@ -73,6 +74,84 @@ class RegisterViewModel: ObservableObject {
                 }
             }
         }.resume()
+    }
+    
+    // 🔹 NOUVELLE FONCTION : Connexion automatique après inscription
+    private func autoLogin(username: String, password: String, completion: @escaping (Bool) -> Void) {
+        let url = URL(string: "https://api.ustock.pro:8443/users/login")!
+        let body: [String: String] = ["username": username, "password": password]
 
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
+            DispatchQueue.main.async {
+                self.errorMessage = "Erreur de format des données de connexion"
+                self.showErrorAlert = true
+                completion(false)
+            }
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = jsonData
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ Erreur lors de la connexion automatique : \(error.localizedDescription)")
+                    self.errorMessage = "Inscription réussie mais erreur de connexion automatique"
+                    self.showErrorAlert = true
+                    completion(false)
+                    return
+                }
+
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    // Traiter la réponse JSON pour obtenir le token
+                    if let data = data {
+                        do {
+                            // Affichage des données brutes pour le débogage
+                            if let responseString = String(data: data, encoding: .utf8) {
+                                print("📡 Réponse connexion automatique : \(responseString)")
+                            }
+                            
+                            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                               let accessToken = json["access_token"] as? String,
+                               let tokenType = json["token_type"] as? String {
+                                
+                                // Stocker le token via AuthManager
+                                let fullToken = "\(tokenType) \(accessToken)"
+                                AuthManager.shared.saveToken(fullToken)
+                                
+                                print("✅ Connexion automatique réussie, token sauvegardé")
+                                self.isRegistered = true
+                                self.errorMessage = nil
+                                completion(true)
+                            } else {
+                                print("❌ Impossible de récupérer le token lors de la connexion automatique")
+                                self.errorMessage = "Inscription réussie mais impossible de vous connecter automatiquement"
+                                self.showErrorAlert = true
+                                completion(false)
+                            }
+                        } catch {
+                            print("❌ Erreur de désérialisation lors de la connexion automatique : \(error)")
+                            self.errorMessage = "Inscription réussie mais erreur de connexion automatique"
+                            self.showErrorAlert = true
+                            completion(false)
+                        }
+                    } else {
+                        print("❌ Aucune donnée reçue lors de la connexion automatique")
+                        self.errorMessage = "Inscription réussie mais erreur de connexion automatique"
+                        self.showErrorAlert = true
+                        completion(false)
+                    }
+                } else {
+                    print("❌ Erreur HTTP lors de la connexion automatique")
+                    self.errorMessage = "Inscription réussie mais erreur de connexion automatique"
+                    self.showErrorAlert = true
+                    completion(false)
+                }
+            }
+        }.resume()
     }
 }

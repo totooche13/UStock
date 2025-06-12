@@ -12,7 +12,7 @@ struct RegisterView: View {
     @State private var isPasswordVisible = false
     @State private var navigateToInventory = false
 
-    let genders = ["Homme", "Femme", "Autres"]
+    let genders = ["Homme", "Femme"]
 
     var body: some View {
         NavigationStack {
@@ -98,7 +98,8 @@ struct RegisterView: View {
                     Button(action: {
                         viewModel.register(firstName: firstName, lastName: lastName, email: email, username: username, password: password, birthDate: birthDate, gender: selectedGender) { success in
                             if success {
-                                navigateToInventory = true
+                                // 🔹 MODIFICATION : Utiliser replaceRootView comme dans LoginView
+                                replaceRootView(with: InventaireView())
                             }
                         }
                     }) {
@@ -116,9 +117,7 @@ struct RegisterView: View {
                     .padding(.bottom, 30)
                 }
             }
-            .navigationDestination(isPresented: $navigateToInventory) {
-                InventaireView()
-            }
+            // 🔹 SUPPRESSION : Retirer navigationDestination car on utilise replaceRootView
             .alert("Erreur", isPresented: $viewModel.showErrorAlert, actions: {
                 Button("OK", role: .cancel) {}
             }, message: {
