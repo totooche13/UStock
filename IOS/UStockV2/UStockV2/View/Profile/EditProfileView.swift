@@ -1,12 +1,4 @@
-//
-//  EditProfileView.swift
-//  UStockV2
-//
-//  Created by Theo RUELLAN on 17/04/2025.
-//
-
 import SwiftUI
-import PhotosUI
 
 struct EditProfileView: View {
     @Binding var userName: String
@@ -53,7 +45,6 @@ struct EditProfileView: View {
                                         .foregroundColor(Color(hex: "156585"))
                                 }
                                 
-                                // Indicateur de chargement pendant l'upload
                                 if isUploadingImage {
                                     Circle()
                                         .fill(Color.black.opacity(0.5))
@@ -111,37 +102,29 @@ struct EditProfileView: View {
             .onAppear {
                 tempUserName = userName
                 tempUserEmail = userEmail
-                fetchUserProfile() // Charger la photo de profil existante
+                fetchUserProfile()
             }
-            // Action Sheet pour choisir la source d'image
             .confirmationDialog("Choisir une photo", isPresented: $showImageSourceSelector) {
                 Button("Album photo") {
                     showPhotoLibrary = true
                 }
-                
                 Button("Appareil photo") {
                     showCamera = true
                 }
-                
                 Button("Fichiers") {
                     showDocumentPicker = true
                 }
-                
                 Button("Annuler", role: .cancel) {}
             }
-            // Sélecteur de photos
             .sheet(isPresented: $showPhotoLibrary) {
                 PhotoPicker(image: $inputImage, completion: loadImage)
             }
-            // Caméra
             .sheet(isPresented: $showCamera) {
                 CameraPicker(image: $inputImage, completion: loadImage)
             }
-            // Sélecteur de fichiers
             .sheet(isPresented: $showDocumentPicker) {
                 DocumentPicker(image: $inputImage, completion: loadImage)
             }
-            // Alertes pour l'upload
             .alert("Photo mise à jour", isPresented: $showUploadSuccess) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -155,16 +138,14 @@ struct EditProfileView: View {
         }
     }
     
-    // Charger l'image sélectionnée
+    // MARK: - Fonctions privées
+    
     private func loadImage() {
         guard let inputImage = inputImage else { return }
         profileImage = Image(uiImage: inputImage)
-        
-        // Uploader l'image vers le serveur
         uploadProfileImage(image: inputImage)
     }
     
-    // Uploader l'image vers l'API (même logique que ProfileView)
     private func uploadProfileImage(image: UIImage) {
         guard let imageData = image.jpegData(compressionQuality: 0.8),
               let token = UserDefaults.standard.string(forKey: "authToken") else {
@@ -176,7 +157,6 @@ struct EditProfileView: View {
         isUploadingImage = true
         
         let url = URL(string: "https://api.ustock.pro:8443/users/me/profile-image")!
-        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(token, forHTTPHeaderField: "Authorization")
@@ -185,8 +165,6 @@ struct EditProfileView: View {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         var body = Data()
-        
-        // Ajouter l'image au body
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"profile.jpg\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
@@ -208,16 +186,8 @@ struct EditProfileView: View {
                 }
                 
                 if let response = response as? HTTPURLResponse {
-                    print("✅ Statut upload: \(response.statusCode)")
-                    
-                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                        print("📦 Réponse: \(responseString)")
-                    }
-                    
                     if response.statusCode == 200 {
                         self.showUploadSuccess = true
-                        
-                        // Rafraîchir le profil pour obtenir la nouvelle URL après un délai
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             self.fetchUserProfile()
                         }
@@ -230,7 +200,6 @@ struct EditProfileView: View {
         }.resume()
     }
     
-    // Récupérer les informations du profil (même logique que ProfileView)
     private func fetchUserProfile() {
         guard let token = UserDefaults.standard.string(forKey: "authToken") else {
             return
@@ -243,18 +212,19 @@ struct EditProfileView: View {
         URLSession.shared.dataTask(with: request) { data, response, error in
             if let data = data, let response = response as? HTTPURLResponse, response.statusCode == 200 {
                 do {
-                    let decoder = JSONDecoder()
-                    let userProfile = try decoder.decode(UserProfile.self, from: data)
-                    
-                    DispatchQueue.main.async {
-                        // Mettre à jour les informations
-                        self.tempUserName = userProfile.username
-                        self.tempUserEmail = userProfile.email
-                        
-                        // Charger l'image de profil si elle existe
-                        if let imageUrl = userProfile.profile_image_url, !imageUrl.isEmpty {
-                            self.profileImageUrl = imageUrl
-                            self.loadProfileImage(from: imageUrl)
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        DispatchQueue.main.async {
+                            if let username = json["username"] as? String {
+                                self.tempUserName = username
+                            }
+                            if let email = json["email"] as? String {
+                                self.tempUserEmail = email
+                            }
+                            
+                            if let imageUrl = json["profile_image_url"] as? String, !imageUrl.isEmpty {
+                                self.profileImageUrl = imageUrl
+                                self.loadProfileImage(from: imageUrl)
+                            }
                         }
                     }
                 } catch {
@@ -264,7 +234,6 @@ struct EditProfileView: View {
         }.resume()
     }
     
-    // Charger l'image depuis l'URL (même logique que ProfileView)
     private func loadProfileImage(from urlString: String) {
         guard let url = URL(string: urlString) else { return }
         
@@ -277,8 +246,3 @@ struct EditProfileView: View {
         }.resume()
     }
 }
-
-
-
-
-

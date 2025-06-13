@@ -6,30 +6,24 @@ class RegisterViewModel: ObservableObject {
     @Published var showErrorAlert = false
     
 
-    func register(firstName: String, lastName: String, email: String, username: String, password: String, birthDate: Date, gender: String, completion: @escaping (Bool) -> Void) {
+    func register(firstName: String, lastName: String, email: String, username: String, password: String, gender: String, completion: @escaping (Bool) -> Void) {
         let url = URL(string: "https://api.ustock.pro:8443/users/register")!
-        /// let url = URL(string: "https://apiustock.ddnsfree.com:8443/users/register")!
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let formattedBirthDate = formatter.string(from: birthDate)
-        
+        // 🔹 MODIFICATION : Suppression de birth_date
         let body: [String: Any?] = [
             "first_name": firstName,
             "last_name": lastName,
             "email": email,
             "username": username,
-            "birth_date": formattedBirthDate,
             "gender": gender,
             "password": password,
-            "family_id": nil // 🔹 Ajout de family_id à NULL
+            "family_id": nil
         ]
         
         print("📡 Envoi de la requête avec les données suivantes :")
         print("first_name: \(firstName), last_name: \(lastName), email: \(email)")
         print("username: \(username), password: \(password)")
-        print("birth_date: \(birthDate), gender: \(gender), family_id: nil")
-
+        print("gender: \(gender), family_id: nil")
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
             DispatchQueue.main.async {
@@ -64,7 +58,7 @@ class RegisterViewModel: ObservableObject {
 
                     if httpResponse.statusCode == 200 {
                         print("✅ Inscription réussie, connexion automatique en cours...")
-                        // 🔹 NOUVELLE ÉTAPE : Connexion automatique après inscription
+                        // Connexion automatique après inscription
                         self.autoLogin(username: username, password: password, completion: completion)
                     } else {
                         self.errorMessage = "Erreur lors de l'inscription"
@@ -76,7 +70,7 @@ class RegisterViewModel: ObservableObject {
         }.resume()
     }
     
-    // 🔹 NOUVELLE FONCTION : Connexion automatique après inscription
+    // Connexion automatique après inscription
     private func autoLogin(username: String, password: String, completion: @escaping (Bool) -> Void) {
         let url = URL(string: "https://api.ustock.pro:8443/users/login")!
         let body: [String: String] = ["username": username, "password": password]
@@ -107,10 +101,8 @@ class RegisterViewModel: ObservableObject {
                 }
 
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    // Traiter la réponse JSON pour obtenir le token
                     if let data = data {
                         do {
-                            // Affichage des données brutes pour le débogage
                             if let responseString = String(data: data, encoding: .utf8) {
                                 print("📡 Réponse connexion automatique : \(responseString)")
                             }
@@ -119,7 +111,6 @@ class RegisterViewModel: ObservableObject {
                                let accessToken = json["access_token"] as? String,
                                let tokenType = json["token_type"] as? String {
                                 
-                                // Stocker le token via AuthManager
                                 let fullToken = "\(tokenType) \(accessToken)"
                                 AuthManager.shared.saveToken(fullToken)
                                 

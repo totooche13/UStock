@@ -7,12 +7,11 @@ struct RegisterView: View {
     @State private var email = ""
     @State private var username = ""
     @State private var password = ""
-    @State private var birthDate = Date()
     @State private var selectedGender = "Homme"
     @State private var isPasswordVisible = false
     @State private var navigateToInventory = false
 
-    let genders = ["Homme", "Femme"]
+    let genders = ["Homme", "Femme", "Autres"]
 
     var body: some View {
         NavigationStack {
@@ -52,26 +51,18 @@ struct RegisterView: View {
                     }
                     .padding(.horizontal, 30)
 
-                    HStack(spacing: 10) { // 🔹 Espacement ajusté pour un meilleur rendu
+                    HStack(spacing: 10) {
                         CustomTextField(placeholder: "Nom*", text: $lastName)
-                            .frame(maxWidth: .infinity) // 🔹 Prend toute la largeur disponible
-                        
+                            .frame(maxWidth: .infinity)
                         
                         CustomTextField(placeholder: "Prénom*", text: $firstName)
-                            .frame(maxWidth: .infinity) // 🔹 Prend toute la largeur disponible
+                            .frame(maxWidth: .infinity)
                     }
-                    
-
 
                     CustomTextField(placeholder: "Email*", text: $email)
                     CustomSecureField(placeholder: "Mot de passe*", text: $password, isPasswordVisible: $isPasswordVisible)
                     CustomTextField(placeholder: "Identifiant de connexion*", text: $username)
                         .padding(.bottom, 8)
-                    CustomDatePicker(placeholder: "Date de Naissance*", date: $birthDate)
-                        .padding(.bottom, 10) // 🔹 Garde un espace en bas
-
- 
-
 
                     // 🔹 Sélection du genre
                     HStack {
@@ -96,9 +87,15 @@ struct RegisterView: View {
 
                     // 🔹 Bouton CONTINUER
                     Button(action: {
-                        viewModel.register(firstName: firstName, lastName: lastName, email: email, username: username, password: password, birthDate: birthDate, gender: selectedGender) { success in
+                        viewModel.register(
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: email,
+                            username: username,
+                            password: password,
+                            gender: selectedGender
+                        ) { success in
                             if success {
-                                // 🔹 MODIFICATION : Utiliser replaceRootView comme dans LoginView
                                 replaceRootView(with: InventaireView())
                             }
                         }
@@ -117,7 +114,6 @@ struct RegisterView: View {
                     .padding(.bottom, 30)
                 }
             }
-            // 🔹 SUPPRESSION : Retirer navigationDestination car on utilise replaceRootView
             .alert("Erreur", isPresented: $viewModel.showErrorAlert, actions: {
                 Button("OK", role: .cancel) {}
             }, message: {
@@ -127,7 +123,6 @@ struct RegisterView: View {
         .hideKeyboardOnTap()
     }
 }
-
 
 #Preview {
     RegisterView()

@@ -1,10 +1,9 @@
 import SwiftUI
-import PhotosUI
 
 struct ProfileView: View {
-    @State private var userName: String = "Jean Dupont"
-    @State private var userEmail: String = "jean.dupont@example.com"
-    @State private var memberSince: String = "Mars 2025"
+    @State private var userName: String = "Chargement..."
+    @State private var userEmail: String = "Chargement..."
+    @State private var memberSince: String = "Chargement..."
     @State private var showLogoutConfirmation = false
     @State private var showEditProfile = false
     @State private var showImageSourceSelector = false
@@ -18,6 +17,7 @@ struct ProfileView: View {
     @State private var showUploadSuccess = false
     @State private var uploadErrorMessage: String?
     @State private var showUploadError = false
+    @State private var showAccountDeletion = false
     
     var body: some View {
         NavigationStack {
@@ -108,6 +108,33 @@ struct ProfileView: View {
                                 settingsRowView(icon: "person.fill", text: "Modifier mon profil")
                             }
                             
+                            // Bouton Supprimer le compte
+                            Button(action: {
+                                showAccountDeletion = true
+                            }) {
+                                HStack {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                    Text("Supprimer mon compte")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.red)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.gray)
+                                }
+                                .padding()
+                                .background(Color.white.opacity(0.8))
+                                .cornerRadius(15)
+                                .shadow(radius: 2)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
+                                .padding(.horizontal)
+                            }
+                            
                             // Bouton déconnexion
                             Button(action: {
                                 showLogoutConfirmation = true
@@ -144,6 +171,9 @@ struct ProfileView: View {
             .sheet(isPresented: $showEditProfile) {
                 EditProfileView(userName: $userName, userEmail: $userEmail)
             }
+            .sheet(isPresented: $showAccountDeletion) {
+                AccountDeletionView()
+            }
             // Action Sheet pour choisir la source d'image
             .confirmationDialog("Choisir une photo", isPresented: $showImageSourceSelector) {
                 Button("Album photo") {
@@ -160,19 +190,17 @@ struct ProfileView: View {
                 
                 Button("Annuler", role: .cancel) {}
             }
-            // Sélecteur de photos
+            // Sélecteurs d'images
             .sheet(isPresented: $showPhotoLibrary) {
                 PhotoPicker(image: $inputImage, completion: loadImage)
             }
-            // Caméra
             .sheet(isPresented: $showCamera) {
                 CameraPicker(image: $inputImage, completion: loadImage)
             }
-            // Sélecteur de fichiers
             .sheet(isPresented: $showDocumentPicker) {
                 DocumentPicker(image: $inputImage, completion: loadImage)
             }
-            // Alertes pour l'upload
+            // Alertes
             .alert("Photo mise à jour", isPresented: $showUploadSuccess) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -189,16 +217,14 @@ struct ProfileView: View {
         }
     }
     
-    // Charger l'image sélectionnée
+    // MARK: - Fonctions privées
+    
     private func loadImage() {
         guard let inputImage = inputImage else { return }
         profileImage = Image(uiImage: inputImage)
-        
-        // Uploader l'image vers le serveur
         uploadProfileImage(image: inputImage)
     }
     
-    // Uploader l'image vers l'API
     private func uploadProfileImage(image: UIImage) {
         guard let imageData = image.jpegData(compressionQuality: 0.8),
               let token = UserDefaults.standard.string(forKey: "authToken") else {
@@ -210,7 +236,6 @@ struct ProfileView: View {
         isUploadingImage = true
         
         let url = URL(string: "https://api.ustock.pro:8443/users/me/profile-image")!
-        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(token, forHTTPHeaderField: "Authorization")
@@ -219,8 +244,6 @@ struct ProfileView: View {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         var body = Data()
-        
-        // Ajouter l'image au body
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"profile.jpg\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
@@ -244,14 +267,8 @@ struct ProfileView: View {
                 if let response = response as? HTTPURLResponse {
                     print("✅ Statut upload: \(response.statusCode)")
                     
-                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                        print("📦 Réponse: \(responseString)")
-                    }
-                    
                     if response.statusCode == 200 {
                         self.showUploadSuccess = true
-                        
-                        // Rafraîchir le profil pour obtenir la nouvelle URL
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                             self.fetchUserProfile()
                         }
@@ -264,9 +281,9 @@ struct ProfileView: View {
         }.resume()
     }
     
-    // Récupérer les informations du profil
     private func fetchUserProfile() {
         guard let token = UserDefaults.standard.string(forKey: "authToken") else {
+            print("❌ Token manquant")
             return
         }
         
@@ -275,28 +292,91 @@ struct ProfileView: View {
         request.setValue(token, forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { data, response, error in
-            if let data = data, let response = response as? HTTPURLResponse, response.statusCode == 200 {
-                do {
-                    let decoder = JSONDecoder()
-                    let userProfile = try decoder.decode(UserProfile.self, from: data)
+            if let error = error {
+                print("❌ Erreur réseau: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let data = data else {
+                print("❌ Pas de données")
+                return
+            }
+            
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📦 Données brutes: \(responseString)")
+            }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    print("✅ JSON décodé avec succès")
+                    
+                    let username = json["username"] as? String ?? "Nom d'utilisateur inconnu"
+                    let email = json["email"] as? String ?? "Email inconnu"
+                    let createdAtString = json["created_at"] as? String
+                    let imageUrl = json["profile_image_url"] as? String
                     
                     DispatchQueue.main.async {
-                        self.userName = userProfile.username
-                        self.userEmail = userProfile.email
+                        self.userName = username
+                        self.userEmail = email
                         
-                        if let imageUrl = userProfile.profile_image_url, !imageUrl.isEmpty {
-                            self.profileImageUrl = imageUrl
+                        if let createdAtString = createdAtString {
+                            self.memberSince = self.formatDateFromISO8601(createdAtString)
+                        } else {
+                            self.memberSince = "Date non disponible"
+                        }
+                        
+                        if let imageUrl = imageUrl, !imageUrl.isEmpty {
                             self.loadProfileImage(from: imageUrl)
                         }
                     }
-                } catch {
-                    print("❌ Erreur décodage: \(error)")
+                }
+            } catch {
+                print("❌ Erreur décodage JSON: \(error)")
+                DispatchQueue.main.async {
+                    self.userName = "Erreur de décodage"
+                    self.userEmail = "Impossible de lire les données"
+                    self.memberSince = "Erreur de format"
                 }
             }
         }.resume()
     }
     
-    // Charger l'image depuis l'URL
+    private func formatDateFromISO8601(_ isoString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        
+        if let date = formatter.date(from: isoString) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateFormat = "MMMM yyyy"
+            displayFormatter.locale = Locale(identifier: "fr_FR")
+            return displayFormatter.string(from: date)
+        } else {
+            return formatDateFromString(isoString)
+        }
+    }
+    
+    private func formatDateFromString(_ dateString: String) -> String {
+        let formatters = [
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd"
+        ]
+        
+        for format in formatters {
+            let formatter = DateFormatter()
+            formatter.dateFormat = format
+            
+            if let date = formatter.date(from: dateString) {
+                let displayFormatter = DateFormatter()
+                displayFormatter.dateFormat = "MMMM yyyy"
+                displayFormatter.locale = Locale(identifier: "fr_FR")
+                return displayFormatter.string(from: date)
+            }
+        }
+        
+        return "Format de date non reconnu"
+    }
+    
     private func loadProfileImage(from urlString: String) {
         guard let url = URL(string: urlString) else { return }
         
@@ -309,7 +389,6 @@ struct ProfileView: View {
         }.resume()
     }
     
-    // Fonction de déconnexion
     private func logout() {
         AuthManager.shared.removeToken()
         
@@ -320,7 +399,6 @@ struct ProfileView: View {
         }
     }
     
-    // Vue pour ligne de paramètre
     private func settingsRowView(icon: String, text: String) -> some View {
         HStack {
             Image(systemName: icon)
@@ -343,149 +421,4 @@ struct ProfileView: View {
         .shadow(radius: 2)
         .padding(.horizontal)
     }
-}
-
-// MARK: - Photo Library Picker
-struct PhotoPicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    var completion: () -> Void
-    
-    class Coordinator: NSObject, PHPickerViewControllerDelegate {
-        var parent: PhotoPicker
-        
-        init(_ parent: PhotoPicker) {
-            self.parent = parent
-        }
-        
-        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            picker.dismiss(animated: true)
-            
-            guard let provider = results.first?.itemProvider else { return }
-            
-            if provider.canLoadObject(ofClass: UIImage.self) {
-                provider.loadObject(ofClass: UIImage.self) { image, _ in
-                    DispatchQueue.main.async {
-                        self.parent.image = image as? UIImage
-                        self.parent.completion()
-                    }
-                }
-            }
-        }
-    }
-    
-    func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration()
-        config.filter = .images
-        config.selectionLimit = 1
-        
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-}
-
-// MARK: - Camera Picker
-struct CameraPicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    var completion: () -> Void
-    
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: CameraPicker
-        
-        init(_ parent: CameraPicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let selectedImage = info[.originalImage] as? UIImage {
-                parent.image = selectedImage
-                parent.completion()
-            }
-            picker.dismiss(animated: true)
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
-        }
-    }
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .camera
-        picker.allowsEditing = false
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-}
-
-// MARK: - Document Picker
-struct DocumentPicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    var completion: () -> Void
-    
-    class Coordinator: NSObject, UIDocumentPickerDelegate {
-        var parent: DocumentPicker
-        
-        init(_ parent: DocumentPicker) {
-            self.parent = parent
-        }
-        
-        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else { return }
-            
-            // Vérifier si c'est une image
-            if url.startAccessingSecurityScopedResource() {
-                defer { url.stopAccessingSecurityScopedResource() }
-                
-                if let imageData = try? Data(contentsOf: url),
-                   let image = UIImage(data: imageData) {
-                    DispatchQueue.main.async {
-                        self.parent.image = image
-                        self.parent.completion()
-                    }
-                }
-            }
-        }
-        
-        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            controller.dismiss(animated: true)
-        }
-    }
-    
-    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.image])
-        picker.delegate = context.coordinator
-        picker.allowsMultipleSelection = false
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-}
-
-// Modèle pour décoder la réponse de l'API
-struct UserProfile: Codable {
-    let id: Int
-    let first_name: String
-    let last_name: String
-    let email: String
-    let username: String
-    let birth_date: String
-    let gender: String
-    let profile_image_url: String?
 }
