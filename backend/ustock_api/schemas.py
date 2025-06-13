@@ -19,34 +19,29 @@ class ProductResponse(BaseModel):
     nutriscore: Optional[str]
     image_url: Optional[str]
 
-
     class Config:
         from_attributes = True
-
-
-
 
 class UserCreate(BaseModel):
     first_name: str
     last_name: str
     email: str
     username: str
-    birth_date: date
     gender: str
     password: str
-    family_id: Optional[int] = None  # Rend le champ optionnel
+    family_id: Optional[int] = None
 
-
+# 🔹 MODIFICATION : Ajout de created_at
 class UserResponse(BaseModel):
     id: int
     first_name: str
     last_name: str
     email: str
     username: str
-    birth_date: date
     gender: str
     family_id: Optional[int]
     profile_image_url: Optional[str] = None
+    created_at: Optional[datetime] = None  # 🔹 NOUVEAU
 
     class Config:
         from_attributes = True
@@ -59,28 +54,20 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str
 
-
-
-
 class StockCreate(BaseModel):
     product_id: int
     quantity: int = 1
     expiration_date: Optional[date] = None
-
 
 # Modèle pour le stock incluant les détails du produit
 class StockResponse(BaseModel):
     id: int
     quantity: int
     expiration_date: Optional[date]
-    product: ProductResponse  # On inclut ici les détails du produit
+    product: ProductResponse
 
     class Config:
         from_attributes = True
-
-
-
-
 
 class ProductConsumptionCreate(BaseModel):
     stock_id: int

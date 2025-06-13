@@ -4,12 +4,12 @@ from ustock_api.database import Base
 from sqlalchemy.sql import func
 
 
-class Family(Base):  # Ajout de la table families
+class Family(Base):
     __tablename__ = "families"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
-    created_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, default=func.now())
 
 class User(Base):
     __tablename__ = "users"
@@ -19,13 +19,13 @@ class User(Base):
     last_name = Column(String(50), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     username = Column(String(50), unique=True, nullable=False)
-    birth_date = Column(Date, nullable=False)
-    gender = Column(Enum("homme", "femme"), nullable=False)
+    gender = Column(Enum("homme", "femme", "autres"), nullable=False)
     family_id = Column(Integer, ForeignKey("families.id", ondelete="SET NULL"), nullable=True)
     password_hash = Column(String(255), nullable=False)
-    profile_image_url = Column(String(255), nullable=True)  # Nouveau champ
-    created_at = Column(TIMESTAMP)
-    updated_at = Column(TIMESTAMP)
+    profile_image_url = Column(String(255), nullable=True)
+    # 🔹 MODIFICATION : S'assurer que les timestamps sont correctement définis
+    created_at = Column(TIMESTAMP, nullable=False, default=func.now())
+    updated_at = Column(TIMESTAMP, nullable=False, default=func.now(), onupdate=func.now())
 
     family = relationship("Family", backref="users")
 
@@ -40,8 +40,7 @@ class Product(Base):
     content_size = Column(String(50))
     nutriscore = Column(Enum("a", "b", "c", "d", "e"))
     image_url = Column(String(255))
-    created_at = Column(TIMESTAMP)
-
+    created_at = Column(TIMESTAMP, default=func.now())
 
 
 class Stock(Base):
@@ -53,7 +52,7 @@ class Stock(Base):
     family_id = Column(Integer, ForeignKey("families.id", ondelete="SET NULL"), nullable=True)
     quantity = Column(Integer, nullable=False, default=1)
     expiration_date = Column(Date, nullable=True)
-    added_at = Column(TIMESTAMP, nullable=False)
+    added_at = Column(TIMESTAMP, nullable=False, default=func.now())
 
     product = relationship("Product")
     user = relationship("User")
