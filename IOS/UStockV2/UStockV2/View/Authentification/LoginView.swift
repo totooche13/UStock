@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct LoginView: View {
@@ -47,7 +46,10 @@ struct LoginView: View {
                     .padding(.horizontal, 30)
 
                     CustomTextField(placeholder: "Identifiant de connexion*", text: $username)
+                        .disabled(viewModel.isLoading) // Désactiver pendant le chargement
+                    
                     CustomSecureField(placeholder: "Mot de passe*", text: $password, isPasswordVisible: $isPasswordVisible)
+                        .disabled(viewModel.isLoading) // Désactiver pendant le chargement
 
                     Button(action: {
                         print("Mot de passe oublié ?")
@@ -57,46 +59,108 @@ struct LoginView: View {
                             .underline()
                             .padding(.top, 10)
                     }
+                    .disabled(viewModel.isLoading) // Désactiver pendant le chargement
 
                     Spacer()
 
-                    // 🔹 Bouton CONTINUER
+                    // 🔹 Bouton CONTINUER amélioré
                     Button(action: {
-                        viewModel.login(username: username, password: password) { success in
-                            if success {
-                                replaceRootView(with: InventaireView())
+                        // Empêcher les clics multiples pendant le chargement
+                        guard !viewModel.isLoading else {
+                            print("⚠️ Bouton déjà en cours de traitement")
+                            return
+                        }
+                        
+                        // Validation côté client
+                        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        guard !trimmedUsername.isEmpty, !trimmedPassword.isEmpty else {
+                            viewModel.errorMessage = "Veuillez remplir tous les champs"
+                            viewModel.showErrorAlert = true
+                            return
+                        }
+                        
+                        print("🔄 Tentative de connexion...")
+                        
+                        viewModel.login(username: trimmedUsername, password: trimmedPassword) { success in
+                            DispatchQueue.main.async {
+                                if success {
+                                    print("✅ Connexion réussie, redirection vers l'inventaire")
+                                    self.replaceRootView(with: InventaireView())
+                                } else {
+                                    print("❌ Échec de la connexion")
+                                }
                             }
                         }
                     }) {
-                        Text("CONTINUER")
-                            .font(.custom("ChauPhilomeneOne-Regular", size: 28))
-                            .fontWeight(.bold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color(hex: "689FA7"))
-                            .foregroundColor(.black)
-                            .cornerRadius(20)
-                            .shadow(radius: 5)
+                        HStack {
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                    .scaleEffect(0.8)
+                                    .padding(.trailing, 8)
+                            }
+                            
+                            Text(viewModel.isLoading ? "CONNEXION..." : "CONTINUER")
+                                .font(.custom("ChauPhilomeneOne-Regular", size: 28))
+                                .fontWeight(.bold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            viewModel.isLoading ?
+                                Color(hex: "689FA7").opacity(0.7) :
+                                Color(hex: "689FA7")
+                        )
+                        .foregroundColor(.black)
+                        .cornerRadius(20)
+                        .shadow(radius: viewModel.isLoading ? 2 : 5)
+                        .scaleEffect(viewModel.isLoading ? 0.98 : 1.0)
+                        .animation(.easeInOut(duration: 0.1), value: viewModel.isLoading)
                     }
+                    .disabled(viewModel.isLoading)  // Désactiver pendant le chargement
                     .padding(.horizontal, 30)
                     .padding(.bottom, 30)
-
                 }
             }
             
-            .alert("Erreur", isPresented: $viewModel.showErrorAlert, actions: {
-                Button("OK", role: .cancel) {}
+            // Alertes d'erreur améliorées
+            .alert("Erreur de connexion", isPresented: $viewModel.showErrorAlert, actions: {
+                Button("Réessayer", role: .cancel) {
+                    viewModel.resetState()
+                }
+                
+                if viewModel.errorMessage?.contains("internet") == true ||
+                   viewModel.errorMessage?.contains("réseau") == true {
+                    Button("Paramètres réseau") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }
             }, message: {
-                Text(viewModel.errorMessage ?? "Une erreur est survenue")
+                Text(viewModel.errorMessage ?? "Une erreur est survenue lors de la connexion")
             })
             
+            // Gestion du clavier
+            .onTapGesture {
+                hideKeyboard()
+            }
+            
+            // Nettoyage en cas de disparition de la vue
+            .onDisappear {
+                viewModel.resetState()
+            }
         }
         .hideKeyboardOnTap()
     }
+    
+    // Fonction pour masquer le clavier
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
 }
-
-
-
 
 #Preview {
     LoginView()
