@@ -25,7 +25,7 @@ struct StatsView: View {
         NavigationView {
             ZStack {
                 // Fond uniforme plus lisible
-                Color(hex: "F8FAFE")
+                Color(hex: "C1DDF9")
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -65,6 +65,7 @@ struct StatsView: View {
                 }
             }
             .navigationTitle("Statistiques")
+                .font(.custom("ChauPhilomeneOne-Regular", size: 32))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

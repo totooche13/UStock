@@ -97,20 +97,21 @@ class StockViewModel: ObservableObject {
                         print("✅ \(stocksDTO.count) produits dans le stock")
                         
                         let produits = stocksDTO.map { stockDTO -> Produit in
-                            let dateFormatter = DateFormatter()
-                            dateFormatter.dateFormat = "yyyy-MM-dd"
+                            // 🔹 NOUVEAU : Utilisation du formatter API pour parser
+                            let apiFormatter = DateFormatter.apiFormat
+                            let expirationDate = apiFormatter.date(from: stockDTO.expiration_date) ?? Date()
                             
                             // Calculer les jours restants
-                            let expirationDate = dateFormatter.date(from: stockDTO.expiration_date) ?? Date()
-                            let joursRestants = Calendar.current.dateComponents([.day], from: Date(), to: expirationDate).day ?? 0
+                            let joursRestants = expirationDate.daysFromNow
                             
-                            // Formater la date pour l'affichage
-                            dateFormatter.dateFormat = "dd-MM-yy"
-                            let formattedDate = dateFormatter.string(from: expirationDate)
+                            // 🔹 NOUVEAU : Formatage en français complet
+                            let formattedDate = expirationDate.fullFrenchString
+                            
+                            print("📅 Date de péremption formatée: \(formattedDate) (dans \(joursRestants) jours)")
                             
                             return Produit(
                                 nom: stockDTO.product.product_name,
-                                peremption: formattedDate,
+                                peremption: formattedDate, // 🔹 Format français complet
                                 joursRestants: joursRestants,
                                 quantite: stockDTO.quantity,
                                 image: "",  // Champ vide car nous utilisons directement l'URL d'image
@@ -125,7 +126,12 @@ class StockViewModel: ObservableObject {
                             )
                         }
                         
-                        self.stocks = produits
+                        // 🔹 NOUVEAU : Tri par date de péremption (les plus proches en premier)
+                        self.stocks = produits.sorted { produit1, produit2 in
+                            // Les produits périmés en premier (jours négatifs)
+                            // Puis par ordre croissant de jours restants
+                            return produit1.joursRestants < produit2.joursRestants
+                        }
                     } catch {
                         print("❌ Erreur décodage JSON : \(error)")
                         self.errorMessage = "Erreur lors de la récupération des produits: \(error.localizedDescription)"

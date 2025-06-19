@@ -3,11 +3,11 @@ import SwiftUI
 struct CarrouselProduitsBientotPerimes: View {
     let produits: [Produit]
     @State private var currentIndex = 0
-    @State private var offset: CGFloat = 0
     @State private var productImages: [Int: UIImage] = [:]
     
+    // 🔹 NOUVELLE LOGIQUE : Produits qui expirent dans 3 jours ou moins (mais pas encore périmés)
     var produitsQuiExpirentBientot: [Produit] {
-        produits.filter { $0.joursRestants <= 3 }
+        produits.filter { $0.joursRestants >= 0 && $0.joursRestants <= 3 }
     }
     
     var body: some View {
@@ -20,137 +20,66 @@ struct CarrouselProduitsBientotPerimes: View {
                 .cornerRadius(20)
                 .padding(.horizontal)
         } else {
-            ZStack(alignment: .topTrailing) {
-                // Contenu principal
-                HStack {
-                    // Image du produit à gauche
-                    if let stockId = produitsQuiExpirentBientot[currentIndex].stockId,
-                       let image = productImages[stockId] {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 80, height: 80)
-                            .padding(.leading, 15)
-                            .transition(.opacity)
-                            .id("image-\(currentIndex)")
-                    } else {
-                        Image(systemName: "photo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 80, height: 80)
-                            .foregroundColor(.gray)
-                            .padding(.leading, 15)
-                            .onAppear {
-                                loadImage(for: currentIndex)
+            VStack(spacing: 10) {
+                // 🔹 CARROUSEL SIMPLE AVEC TABVIEW
+                ZStack(alignment: .topTrailing) {
+                    TabView(selection: $currentIndex) {
+                        ForEach(Array(produitsQuiExpirentBientot.enumerated()), id: \.offset) { index, produit in
+                            NavigationLink(destination: ProductDetailView(produit: produit)) {
+                                CarrouselCard(
+                                    produit: produit,
+                                    image: productImages[produit.stockId ?? 0],
+                                    onImageLoad: {
+                                        loadImage(for: produit)
+                                    }
+                                )
                             }
-                    }
-                    
-                    // Informations du produit à droite
-                    VStack(alignment: .leading, spacing: 4) {
-                        // En-tête "PÉRIME BIENTÔT :"
-                        Text("PÉRIME BIENTÔT :")
-                            .font(.system(size: 14, weight: .bold))
-                            .padding(.top, 8)
-                        
-                        // Nom du produit en gras et plus grand
-                        Text(produitsQuiExpirentBientot[currentIndex].nom)
-                            .font(.system(size: 24, weight: .bold))
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                            .id("nom-\(currentIndex)")
-                        
-                        // Date de péremption en rouge
-                        Text("Périme le \(produitsQuiExpirentBientot[currentIndex].peremption)")
-                            .foregroundColor(.red)
-                            .font(.system(size: 16, weight: .semibold))
-                            .transition(.opacity)
-                            .id("date-\(currentIndex)")
-                        
-                        // Quantité
-                        Text("Quantité : \(produitsQuiExpirentBientot[currentIndex].quantite)")
-                            .font(.system(size: 18, weight: .bold))
-                            .padding(.bottom, 8)
-                            .transition(.opacity)
-                            .id("quantite-\(currentIndex)")
-                    }
-                    .padding(.trailing, 35)
-                    
-                    Spacer()
-                }
-                .frame(height: 150)
-                .frame(maxWidth: .infinity)
-                .background(Color(hex: "679FA7"))
-                .cornerRadius(20)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            // Effet de drag en temps réel (léger)
-                            offset = value.translation.width / 10
+                            .buttonStyle(PlainButtonStyle())
+                            .tag(index)
                         }
-                        .onEnded { value in
-                            // Réinitialiser l'offset
-                            offset = 0
-                            
-                            if value.translation.width < -50 && currentIndex < produitsQuiExpirentBientot.count - 1 {
-                                // Swipe gauche → produit suivant
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    currentIndex += 1
-                                }
-                                loadImage(for: currentIndex)
-                            } else if value.translation.width > 50 && currentIndex > 0 {
-                                // Swipe droite → produit précédent
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    currentIndex -= 1
-                                }
-                                loadImage(for: currentIndex)
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    .frame(height: 150)
+                    
+                    // Bouton X
+                    
+                    .padding([.top, .trailing], 10)
+                }
+                
+                // 🔹 INDICATEURS PERSONNALISÉS
+                HStack(spacing: 6) {
+                    ForEach(0..<produitsQuiExpirentBientot.count, id: \.self) { index in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                currentIndex = index
                             }
+                        }) {
+                            Circle()
+                                .fill(index == currentIndex ? Color.black : Color.gray.opacity(0.5))
+                                .frame(width: index == currentIndex ? 8 : 6, height: index == currentIndex ? 8 : 6)
+                                .animation(.easeInOut(duration: 0.2), value: currentIndex)
                         }
-                )
-                .offset(x: offset) // Appliquer le décalage pendant le drag
-                
-                // Bouton X dans un cercle noir
-                Button(action: {
-                    // Action à exécuter quand on clique sur le X
-                }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.black)
-                            .frame(width: 35, height: 35)
-                        
-                        Text("✕")
-                            .foregroundColor(.white)
-                            .font(.system(size: 18, weight: .bold))
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .padding([.top, .trailing], 8)
-                
-                // Indicateurs de pagination en bas du cadre (mais à l'intérieur)
-                HStack(spacing: 5) {
-                    ForEach(0..<produitsQuiExpirentBientot.count, id: \.self) { i in
-                        Circle()
-                            .fill(i == currentIndex ? Color.black : Color.gray)
-                            .frame(width: i == currentIndex ? 8 : 5, height: i == currentIndex ? 8 : 5)
-                    }
-                }
-                .padding(.bottom, 12)
-                .frame(maxWidth: .infinity)
-                .frame(height: 150, alignment: .bottom)
+                .padding(.bottom, 5)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 15)
             .onAppear {
-                // Charger l'image du premier produit
-                if !produitsQuiExpirentBientot.isEmpty {
-                    loadImage(for: currentIndex)
+                // Charger toutes les images au démarrage
+                for produit in produitsQuiExpirentBientot {
+                    loadImage(for: produit)
                 }
             }
         }
     }
     
     // Fonction pour charger l'image depuis l'URL
-    private func loadImage(for index: Int) {
-        guard index < produitsQuiExpirentBientot.count,
-              let productDetails = produitsQuiExpirentBientot[index].productDetails,
-              let stockId = produitsQuiExpirentBientot[index].stockId,
+    private func loadImage(for produit: Produit) {
+        guard let productDetails = produit.productDetails,
+              let stockId = produit.stockId,
               let url = URL(string: productDetails.imageUrl),
+              !productDetails.imageUrl.isEmpty,
               productImages[stockId] == nil else {
             return
         }
@@ -162,5 +91,97 @@ struct CarrouselProduitsBientotPerimes: View {
                 }
             }
         }.resume()
+    }
+}
+
+// 🔹 COMPOSANT CARTE CORRIGÉ
+struct CarrouselCard: View {
+    let produit: Produit
+    let image: UIImage?
+    let onImageLoad: () -> Void
+    
+    var body: some View {
+        HStack {
+            // Image du produit à gauche
+            Group {
+                if let image = image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 70, height: 70)
+                } else {
+                    Image(systemName: "photo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 70, height: 70)
+                        .foregroundColor(.gray)
+                        .onAppear {
+                            onImageLoad()
+                        }
+                }
+            }
+            .padding(.leading, 15)
+            
+            // Informations du produit à droite
+            VStack(alignment: .leading, spacing: 4) {
+                Text("PÉRIME BIENTÔT :")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.black)
+                    .padding(.top, 8)
+                
+                Text(produit.nom)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.black)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                
+                Text("Périme le \(produit.peremption)")
+                    .foregroundColor(getExpirationColor(for: produit))
+                    .font(.system(size: 15, weight: .semibold))
+                
+                Text(getExpirationText(for: produit))
+                    .foregroundColor(getExpirationColor(for: produit))
+                    .font(.system(size: 13, weight: .medium))
+                
+                Text("Quantité : \(produit.quantite)")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.black)
+                    .padding(.bottom, 8)
+            }
+            .padding(.trailing, 15)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, minHeight: 130, maxHeight: 130)
+        .background(Color(hex: "679FA7"))
+        .cornerRadius(20)
+        .shadow(radius: 3)
+        .padding(.horizontal, 5) // Petit padding pour éviter que ça touche les bords
+    }
+    
+    // Fonctions helper
+    private func getExpirationColor(for produit: Produit) -> Color {
+        if produit.joursRestants < 0 {
+            return .red
+        } else if produit.joursRestants <= 1 {
+            return .red
+        } else if produit.joursRestants <= 3 {
+            return .orange
+        } else {
+            return .green
+        }
+    }
+    
+    private func getExpirationText(for produit: Produit) -> String {
+        if produit.joursRestants < 0 {
+            let daysPassed = abs(produit.joursRestants)
+            return daysPassed == 1 ? "Périmé depuis 1 jour" : "Périmé depuis \(daysPassed) jours"
+        } else if produit.joursRestants == 0 {
+            return "Expire aujourd'hui"
+        } else if produit.joursRestants == 1 {
+            return "Expire demain"
+        } else {
+            return "Expire dans \(produit.joursRestants) jours"
+        }
     }
 }

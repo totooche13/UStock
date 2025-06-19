@@ -10,7 +10,7 @@ struct InventaireView: View {
                 Color(hex: "C1DDF9").edgesIgnoringSafeArea(.all)
                 
                 VStack {
-                    // 🔹 Titre Inventaire
+                    // 🔹 Titre Inventaire avec roue dentée fonctionnelle
                     HStack {
                         Text("INVENTAIRE")
                             .font(.custom("ChauPhilomeneOne-Regular", size: 32))
@@ -19,47 +19,61 @@ struct InventaireView: View {
                             .foregroundColor(Color(.black))
                         
                         Spacer()
-                        Image(systemName: "gearshape.fill")
-                            .resizable()
-                            .frame(width: 30, height: 30)
-                            .padding(.trailing, 20)
-                            .foregroundColor(Color(.black))
+                        
+                        NavigationLink(destination: InventorySettingsView()) {
+                            Image(systemName: "gearshape.fill")
+                                .resizable()
+                                .frame(width: 30, height: 30)
+                                .foregroundColor(Color(.black))
+                        }
+                        .padding(.trailing, 20)
                     }
                     .padding(.top, 20)
+                    .background(Color(hex: "C1DDF9")) // Même couleur que le fond
 
-                    // 🔹 Carrousel des produits qui expirent bientôt
-                    CarrouselProduitsBientotPerimes(produits: stockViewModel.stocks)
-                        .padding(.vertical, 10)
-
-                    // 🔹 Liste des produits avec pull-to-refresh
+                    // 🔹 NOUVEAU : ScrollView qui contient TOUT (carrousel + liste)
                     ScrollView {
-                        // Pull-to-refresh control
-                        PullToRefresh(coordinateSpaceName: "pullToRefresh", onRefresh: refreshData)
-                        
-                        if stockViewModel.isLoading && stockViewModel.stocks.isEmpty {
-                            ProgressView("Chargement des produits...")
-                                .padding()
-                        } else if stockViewModel.stocks.isEmpty {
-                            VStack {
-                                Text("Aucun produit dans votre inventaire")
-                                    .font(.headline)
+                        LazyVStack(spacing: 0) {
+                            // Pull-to-refresh control
+                            PullToRefresh(coordinateSpaceName: "pullToRefresh", onRefresh: refreshData)
+                            
+                            // 🔹 CARROUSEL INTÉGRÉ DANS LE SCROLL
+                            CarrouselProduitsBientotPerimes(produits: stockViewModel.stocks)
+                                .padding(.vertical, 10)
+                            
+                            // 🔹 CONTENU DE LA LISTE
+                            if stockViewModel.isLoading && stockViewModel.stocks.isEmpty {
+                                ProgressView("Chargement des produits...")
                                     .padding()
-                                Text("Utilisez le scanner pour ajouter des produits")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-                            .padding()
-                        } else {
-                            VStack(spacing: 0) {
-                                ForEach(stockViewModel.stocks) { produit in
-                                    ProduitRowView(produit: produit)
-                                        .foregroundColor(Color(.black))
+                            } else if stockViewModel.stocks.isEmpty {
+                                VStack {
+                                    Text("Aucun produit dans votre inventaire")
+                                        .font(.headline)
+                                        .padding()
+                                    Text("Utilisez le scanner pour ajouter des produits")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
                                 }
+                                .padding()
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(stockViewModel.stocks) { produit in
+                                        ProduitRowView(produit: produit)
+                                            .foregroundColor(Color(.black))
+                                    }
+                                }
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal)
+                            
+                            // Espace en bas pour la navigation
+                            Spacer()
+                                .frame(height: 100)
                         }
                     }
                     .coordinateSpace(name: "pullToRefresh")
+                    .refreshable {
+                        await refreshStatsAsync()
+                    }
 
                     Spacer() // Ceci pousse tout le contenu vers le haut
 
@@ -67,13 +81,17 @@ struct InventaireView: View {
                     VStack(spacing: 0) {
                         HStack {
                             Spacer()
-                            NavigationLink(destination: InventaireView()) {
+                            // 🔹 CORRIGÉ : Bouton Inventaire sans navigation (on est déjà dessus)
+                            Button(action: {
+                                // Ne rien faire si on est déjà sur la page Inventaire
+                            }) {
                                 VStack(spacing: 0) {
                                     Image(systemName: "archivebox.fill")
                                         .font(.system(size: 30))
                                     Text("Inventaire")
                                         .font(.system(size: 12))
                                 }
+                                .foregroundColor(Color(hex: "156585")) // Couleur active
                             }
                             Spacer()
                             NavigationLink(destination: Text("Liste")) {
@@ -135,11 +153,18 @@ struct InventaireView: View {
             .onAppear {
                 // Charger les produits quand la vue apparaît
                 stockViewModel.fetchStocks()
+                
+                // 🔹 NOUVEAU : Programmer les notifications après chargement
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    NotificationService.shared.scheduleExpirationNotifications(for: stockViewModel.stocks)
+                }
             }
             .alert(stockViewModel.errorMessage ?? "Erreur", isPresented: $stockViewModel.showErrorAlert) {
                 Button("OK", role: .cancel) {}
             }
         }
+        // 🔹 NOUVEAU : Forcer le mode clair
+        .preferredColorScheme(.light)
     }
     
     // Fonction pour rafraîchir les données
@@ -150,6 +175,12 @@ struct InventaireView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isRefreshing = false
         }
+    }
+    
+    // Version async pour le refreshable
+    private func refreshStatsAsync() async {
+        stockViewModel.fetchStocks()
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
     }
 }
 

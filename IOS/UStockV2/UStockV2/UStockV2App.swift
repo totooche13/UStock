@@ -39,6 +39,8 @@ struct UStockV2App: App {
             } message: {
                 Text(authError ?? "Impossible de vérifier votre authentification. Vérifiez votre connexion internet.")
             }
+            // 🔹 NOUVEAU : Forcer le mode clair pour toute l'application
+            .preferredColorScheme(.light)
         }
     }
     
@@ -115,13 +117,6 @@ struct SplashView: View {
                     .scaleEffect(isAnimating ? 1.1 : 1.0)
                     .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
                 
-                // Titre
-                Text("UStock")
-                    .font(.custom("ChauPhilomeneOne-Regular", size: 32))
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                    .opacity(isAnimating ? 1.0 : 0.7)
-                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
                 
                 // Indicateur de progression après 2 secondes
                 if showProgress {
@@ -150,5 +145,7 @@ struct SplashView: View {
                 }
             }
         }
+        // 🔹 NOUVEAU : Forcer le mode clair aussi pour le splash
+        .preferredColorScheme(.light)
     }
 }

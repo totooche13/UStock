@@ -26,10 +26,15 @@ struct CustomDatePicker: View {
         }
         .sheet(isPresented: $showDatePicker) {
             VStack {
-                DatePicker("Sélectionnez une date", selection: $date, displayedComponents: .date)
+                Text("Sélectionnez une date")
+                    .font(.headline)
+                    .padding(.top)
+                
+                DatePicker("", selection: $date, displayedComponents: .date)
                     .datePickerStyle(.wheel)
                     .labelsHidden()
                     .padding()
+                    .environment(\.locale, Locale(identifier: "fr_FR")) // 🔹 Interface en français
                 
                 Button("Valider") {
                     showDatePicker = false
@@ -45,10 +50,8 @@ struct CustomDatePicker: View {
         }
     }
 
+    // 🔹 NOUVEAU : Format français complet
     private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd-MM-yyyy"
-        return formatter.string(from: date)
+        return date.fullFrenchString
     }
 }
-

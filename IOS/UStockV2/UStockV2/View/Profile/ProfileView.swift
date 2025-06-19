@@ -108,6 +108,12 @@ struct ProfileView: View {
                                 settingsRowView(icon: "person.fill", text: "Modifier mon profil")
                             }
                             
+                            // 🔹 NOUVEAU : Bouton Notifications
+                            NavigationLink(destination: NotificationSettingsView()) {
+                                settingsRowView(icon: "bell.fill", text: "Notifications")
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
                             // Bouton Supprimer le compte
                             Button(action: {
                                 showAccountDeletion = true
@@ -215,6 +221,7 @@ struct ProfileView: View {
                 fetchUserProfile()
             }
         }
+        .preferredColorScheme(.light)
     }
     
     // MARK: - Fonctions privées

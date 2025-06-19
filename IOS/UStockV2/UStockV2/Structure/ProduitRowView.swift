@@ -4,16 +4,32 @@ struct ProduitRowView: View {
     let produit: Produit
     @State private var navigateToDetail = false
     
+    // 🔹 NOUVELLE LOGIQUE : Couleur basée sur les jours restants
     var couleurTexte: Color {
-        switch produit.joursRestants {
-        case ...0:
-            return .red
-        case 1...3:
-            return .orange
-        case 4...14:
-            return .green
-        default:
-            return .gray
+        if produit.joursRestants < 0 {
+            return .red  // Périmé
+        } else if produit.joursRestants <= 1 {
+            return .red  // 0-1 jour
+        } else if produit.joursRestants <= 3 {
+            return .orange  // 2-3 jours
+        } else {
+            return .green  // 4+ jours
+        }
+    }
+    
+    // 🔹 NOUVEAU : Texte d'affichage amélioré
+    var textePeremption: String {
+        if produit.joursRestants < 0 {
+            let daysPassed = abs(produit.joursRestants)
+            return daysPassed == 1 ?
+                "Périmé depuis 1 jour" :
+                "Périmé depuis \(daysPassed) jours"
+        } else if produit.joursRestants == 0 {
+            return "Expire aujourd'hui"
+        } else if produit.joursRestants == 1 {
+            return "Expire demain"
+        } else {
+            return "Expire dans \(produit.joursRestants) jours"
         }
     }
     
@@ -60,9 +76,16 @@ struct ProduitRowView: View {
                         .font(.headline)
                         .foregroundColor(.black)
                     
-                    Text("Périme le \(produit.peremption) (\(produit.joursRestants >= 0 ? "\(produit.joursRestants) jours" : "Périmé"))")
+                    // 🔹 NOUVEAU : Affichage de la date complète
+                    Text("Périme le \(produit.peremption)")
+                        .font(.subheadline)
+                        .foregroundColor(.black)
+                    
+                    // 🔹 NOUVEAU : Affichage du statut avec couleur
+                    Text(textePeremption)
                         .foregroundColor(couleurTexte)
                         .font(.subheadline)
+                        .fontWeight(.medium)
                     
                     Text("Quantité : \(produit.quantite)")
                         .font(.subheadline)
@@ -86,19 +109,74 @@ struct ProduitRowView: View {
 }
 
 #Preview {
-    ProduitRowView(produit: Produit(
-        nom: "Canette Pepsi",
-        peremption: "10-04-25",
-        joursRestants: 30,
-        quantite: 1,
-        image: "🥤",
-        stockId: 1,
-        productDetails: ProductDetails(
-            barcode: "12345678",
-            brand: "Pepsi",
-            contentSize: "330ml",
-            nutriscore: "D",
-            imageUrl: "https://world.openfoodfacts.org/images/products/590/760/011/1702/front_fr.177.400.jpg"
-        )
-    ))
+    VStack(spacing: 10) {
+        // Produit périmé
+        ProduitRowView(produit: Produit(
+            nom: "Yaourt périmé",
+            peremption: "5 octobre 2024",
+            joursRestants: -2,
+            quantite: 1,
+            image: "🥛",
+            stockId: 1,
+            productDetails: ProductDetails(
+                barcode: "12345678",
+                brand: "Danone",
+                contentSize: "125g",
+                nutriscore: "A",
+                imageUrl: ""
+            )
+        ))
+        
+        // Produit expire aujourd'hui
+        ProduitRowView(produit: Produit(
+            nom: "Lait expire aujourd'hui",
+            peremption: "19 juin 2025",
+            joursRestants: 0,
+            quantite: 1,
+            image: "🥛",
+            stockId: 2,
+            productDetails: ProductDetails(
+                barcode: "12345679",
+                brand: "Lactel",
+                contentSize: "1L",
+                nutriscore: "B",
+                imageUrl: ""
+            )
+        ))
+        
+        // Produit expire dans 2 jours
+        ProduitRowView(produit: Produit(
+            nom: "Pain expire bientôt",
+            peremption: "21 juin 2025",
+            joursRestants: 2,
+            quantite: 1,
+            image: "🍞",
+            stockId: 3,
+            productDetails: ProductDetails(
+                barcode: "12345680",
+                brand: "Boulangerie",
+                contentSize: "500g",
+                nutriscore: "C",
+                imageUrl: ""
+            )
+        ))
+        
+        // Produit OK
+        ProduitRowView(produit: Produit(
+            nom: "Canette Pepsi",
+            peremption: "10 juillet 2025",
+            joursRestants: 21,
+            quantite: 1,
+            image: "🥤",
+            stockId: 4,
+            productDetails: ProductDetails(
+                barcode: "12345681",
+                brand: "Pepsi",
+                contentSize: "330ml",
+                nutriscore: "D",
+                imageUrl: ""
+            )
+        ))
+    }
+    .padding()
 }

@@ -19,11 +19,6 @@ struct ProductDetailView: View {
     // ViewModel pour gérer les interactions avec l'API
     @StateObject private var stockViewModel = StockViewModel()
     
-    // État pour le test de notification
-    @State private var notificationAuthorized = false
-    @State private var showingPermissionAlert = false
-    @State private var notificationSent = false
-    
     // Initialisation avec la quantité actuelle du produit
     init(produit: Produit) {
         self.produit = produit
@@ -61,121 +56,90 @@ struct ProductDetailView: View {
                 quantityControlView
                     .padding(.top, 20)
                 
-                // BOUTON DE TEST DE NOTIFICATION
-                Button(action: {
-                    testNotification()
-                }) {
-                    HStack {
-                        Image(systemName: "bell.badge")
-                            .font(.title3)
-                        Text("TESTER NOTIFICATION")
-                            .font(.custom("ChauPhilomeneOne-Regular", size: 20))
-                            .fontWeight(.bold)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.purple)
-                    .foregroundColor(.white)
-                    .cornerRadius(30)
-                    .shadow(radius: 3)
-                }
-                .padding(.horizontal)
-                .padding(.top, 20)
-                
-                // Message de confirmation
-                if notificationSent {
-                    Text("Notification envoyée ! Vérifiez votre centre de notifications dans 5 secondes.")
-                        .font(.footnote)
-                        .foregroundColor(.purple)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                
                 Spacer()
                 
-                // Boutons d'action
-                VStack(spacing: 15) {
-                    // Boutons Jeté/Consommé
-                    HStack(spacing: 0) {
-                        Button(action: {
-                            showDiscardPopup()  // Appel à la nouvelle méthode
-                        }) {
-                            HStack {
-                                Image(systemName: "trash")
-                                    .font(.title3)
-                                Text("JETÉ")
-                                    .font(.custom("ChauPhilomeneOne-Regular", size: 22))
-                                    .fontWeight(.bold)
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.orange)
-                            .foregroundColor(.black)
-                        }
-                        
-                        Button(action: {
-                            showConsumePopup()  // Appel à la nouvelle méthode
-                        }) {
-                            HStack {
-                                Image(systemName: "fork.knife")
-                                    .font(.title3)
-                                Text("CONSOMMÉ")
-                                    .font(.custom("ChauPhilomeneOne-Regular", size: 22))
-                                    .fontWeight(.bold)
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.green)
-                            .foregroundColor(.black)
-                        }
-                    }
-                    .cornerRadius(30)
-                    .shadow(radius: 3)
-                    .padding(.horizontal)
-                    
-                    // Bouton Suppression
+                // Boutons d'action (seulement Jeté/Consommé)
+                HStack(spacing: 0) {
                     Button(action: {
-                        showDeleteConfirmation = true
+                        showDiscardPopup()
                     }) {
                         HStack {
-                            if isDeleting {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .padding(.trailing, 5)
-                            }
-                            
-                            Text("SUPPRESSION")
+                            Image(systemName: "trash")
+                                .font(.title3)
+                            Text("JETÉ")
                                 .font(.custom("ChauPhilomeneOne-Regular", size: 22))
                                 .fontWeight(.bold)
                         }
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(30)
-                        .shadow(radius: 3)
+                        .background(Color.orange)
+                        .foregroundColor(.black)
                     }
-                    .disabled(isDeleting)
-                    .padding(.horizontal)
-                    .padding(.bottom, 30)
+                    
+                    Button(action: {
+                        showConsumePopup()
+                    }) {
+                        HStack {
+                            Image(systemName: "fork.knife")
+                                .font(.title3)
+                            Text("CONSOMMÉ")
+                                .font(.custom("ChauPhilomeneOne-Regular", size: 22))
+                                .fontWeight(.bold)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.green)
+                        .foregroundColor(.black)
+                    }
                 }
+                .cornerRadius(30)
+                .shadow(radius: 3)
+                .padding(.horizontal)
+                .padding(.bottom, 30)
             }
         }
         .navigationTitle("Détails du produit")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing: Button(action: {
-            // Action pour le bouton d'engrenage (paramètres)
-        }) {
-            Image(systemName: "gearshape.fill")
-                .font(.title2)
-        })
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button(role: .destructive, action: {
+                        showDeleteConfirmation = true
+                    }) {
+                        Label("Supprimer de l'inventaire", systemImage: "trash")
+                    }
+                    .disabled(isDeleting)
+                    
+                    Button(action: {
+                        // Action future pour d'autres options
+                    }) {
+                        Label("Modifier les détails", systemImage: "pencil")
+                    }
+                    .disabled(true) // Pour l'instant désactivé
+                    
+                } label: {
+                    ZStack {
+                        if isDeleting {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color(hex: "156585")))
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundColor(Color(hex: "156585"))
+                        }
+                    }
+                }
+                .disabled(isDeleting)
+            }
+        }
         .alert("Supprimer le produit", isPresented: $showDeleteConfirmation) {
             Button("Annuler", role: .cancel) {}
             Button("Supprimer", role: .destructive) {
                 deleteProduct()
             }
         } message: {
-            Text("Voulez-vous vraiment supprimer ce produit de votre inventaire ?")
+            Text("Voulez-vous vraiment supprimer ce produit de votre inventaire ? Cette action est irréversible.")
         }
         .alert("Produit supprimé", isPresented: $showDeleteSuccess) {
             Button("OK") {
@@ -188,22 +152,6 @@ struct ProductDetailView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(stockViewModel.errorMessage ?? "Une erreur est survenue")
-        }
-        .alert("Autorisation de notification requise", isPresented: $showingPermissionAlert) {
-            Button("Annuler", role: .cancel) {}
-            Button("Ouvrir les Réglages") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-        } message: {
-            Text("Pour recevoir des notifications sur les produits qui périment bientôt, veuillez autoriser les notifications dans les réglages.")
-        }
-        .onAppear {
-            // Vérifier l'autorisation de notification lors de l'apparition de la vue
-            TestNotificationService.shared.checkNotificationSettings { authorized in
-                self.notificationAuthorized = authorized
-            }
         }
         .sheet(isPresented: $showQuantityPopup) {
             ZStack {
@@ -297,12 +245,11 @@ struct ProductDetailView: View {
                 }
                 .padding(.horizontal, 30)
             }
-            .presentationDetents([.medium])  // Utiliser medium au lieu d'une hauteur fixe
-            .presentationBackground(Color(hex: "C1DDF9"))  // Fond bleu clair
+            .presentationDetents([.medium])
+            .presentationBackground(Color(hex: "C1DDF9"))
             .presentationCornerRadius(25)
         }
     }
-    
     
     // MARK: - Composants de vue
     
@@ -349,13 +296,14 @@ struct ProductDetailView: View {
     private var nutriScoreView: some View {
         HStack(spacing: 0) {
             ForEach(["A", "B", "C", "D", "E"], id: \.self) { score in
-                // Correction ici pour éviter l'utilisation de ? sur nutriscore
-                let isSelected = if let details = produit.productDetails,
-                                  !details.nutriscore.isEmpty {
-                                    details.nutriscore.uppercased() == score
-                                  } else {
-                                    false
-                                  }
+                // 🔹 CORRIGÉ : Logique de sélection simplifiée
+                let isSelected: Bool = {
+                    if let details = produit.productDetails,
+                       !details.nutriscore.isEmpty {
+                        return details.nutriscore.uppercased() == score
+                    }
+                    return false
+                }()
                 
                 let color: Color = {
                     switch score {
@@ -368,23 +316,28 @@ struct ProductDetailView: View {
                     }
                 }()
                 
-                ZStack {
-                    Rectangle()
-                        .fill(color)
-                        .frame(width: 50, height: 50)
-                    
-                    Text(score)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .overlay(
-                    isSelected ?
+                VStack(spacing: 0) {
+                    // 🔹 NOUVEAU : Triangle au-dessus si sélectionné
+                    if isSelected {
                         Triangle()
                             .fill(color)
                             .frame(width: 20, height: 10)
-                            .offset(y: -30)
-                        : nil
-                )
+                    } else {
+                        Spacer()
+                            .frame(height: 10)
+                    }
+                    
+                    // Rectangle avec la lettre
+                    ZStack {
+                        Rectangle()
+                            .fill(color)
+                            .frame(width: 50, height: 50)
+                        
+                        Text(score)
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
             }
         }
         .cornerRadius(8)
@@ -443,56 +396,17 @@ struct ProductDetailView: View {
     
     // MARK: - Méthodes
     
-    // Test de notification
-    private func testNotification() {
-        TestNotificationService.shared.checkNotificationSettings { authorized in
-            if authorized {
-                // Envoyer la notification de test
-                TestNotificationService.shared.sendTestNotification(for: produit)
-                notificationSent = true
-                
-                // Masquer le message après 5 secondes
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    notificationSent = false
-                }
-            } else {
-                // Demander l'autorisation si ce n'est pas déjà autorisé
-                TestNotificationService.shared.requestAuthorization { granted in
-                    if granted {
-                        // Autorisation accordée, envoyer la notification
-                        TestNotificationService.shared.sendTestNotification(for: produit)
-                        notificationSent = true
-                        
-                        // Masquer le message après 5 secondes
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                            notificationSent = false
-                        }
-                    } else {
-                        // Afficher une alerte pour demander à l'utilisateur d'autoriser les notifications
-                        showingPermissionAlert = true
-                    }
-                }
-            }
-        }
-    }
-    
-    // Méthode pour mettre à jour la quantité
-    private func updateQuantity() {
-        // Cette fonction sera implémentée plus tard pour appeler l'API
-        print("Mettre à jour la quantité : \(quantity)")
-    }
-    
     // Méthode pour afficher le popup pour jeter
     private func showDiscardPopup() {
         selectedAction = "wasted"
-        popupQuantity = 1  // Réinitialiser à 1 pour chaque nouveau popup
+        popupQuantity = 1
         showQuantityPopup = true
     }
 
     // Méthode pour afficher le popup pour consommer
     private func showConsumePopup() {
         selectedAction = "consumed"
-        popupQuantity = 1  // Réinitialiser à 1 pour chaque nouveau popup
+        popupQuantity = 1
         showQuantityPopup = true
     }
 
@@ -531,8 +445,6 @@ struct ProductDetailView: View {
         }
     }
     
-    
-    
     // Méthode pour supprimer le produit
     private func deleteProduct() {
         guard let stockId = produit.stockId else {
@@ -549,7 +461,6 @@ struct ProductDetailView: View {
                 print("✅ Suppression réussie !")
                 showDeleteSuccess = true
             }
-            // En cas d'échec, l'alerte d'erreur sera affichée automatiquement par le ViewModel
         }
     }
 }
@@ -565,5 +476,3 @@ struct Triangle: Shape {
         return path
     }
 }
-
-

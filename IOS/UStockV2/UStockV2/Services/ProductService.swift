@@ -107,6 +107,8 @@ class ProductService {
     
     // MARK: - Add Product to Stock
     
+    // Dans ProductService.swift - Méthode addProductToStock mise à jour
+
     func addProductToStock(productId: Int, quantity: Int, expirationDate: Date, completion: @escaping (Bool) -> Void) {
         guard let url = URL(string: stockURL) else {
             print("❌ Erreur : URL invalide pour ajout au stock")
@@ -128,17 +130,17 @@ class ProductService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(token, forHTTPHeaderField: "Authorization")
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let formattedDate = dateFormatter.string(from: expirationDate)
+        // 🔹 NOUVEAU : Utilisation du formatter API pour envoyer la date
+        let formattedDate = expirationDate.apiString
         
         let body: [String: Any] = [
             "product_id": productId,
             "quantity": quantity,
-            "expiration_date": formattedDate
+            "expiration_date": formattedDate // Format yyyy-MM-dd pour l'API
         ]
         
         print("📦 Données à envoyer: \(body)")
+        print("📅 Date formatée pour l'API: \(formattedDate)")
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
