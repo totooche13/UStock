@@ -149,3 +149,27 @@ struct SplashView: View {
         .preferredColorScheme(.light)
     }
 }
+
+private func setupDefaultSettings() {
+    // Configuration par défaut des paramètres si pas encore définis
+    if !UserDefaults.standard.bool(forKey: "settings_initialized") {
+        // Paramètres du scanner
+        UserDefaults.standard.set(true, forKey: "scanner_sound_enabled")
+        UserDefaults.standard.set(true, forKey: "haptics_enabled")
+        
+        // Paramètres d'affichage
+        UserDefaults.standard.set(true, forKey: "show_carousel") // 🔹 Carrousel activé par défaut
+        UserDefaults.standard.set("long", forKey: "date_format")
+        UserDefaults.standard.set("normal", forKey: "item_size")
+        UserDefaults.standard.set("list", forKey: "display_mode")
+        UserDefaults.standard.set("expiration", forKey: "sort_option")
+        
+        // Paramètres d'alerte
+        UserDefaults.standard.set(3, forKey: "alert_threshold")
+        
+        // Marquer comme initialisé
+        UserDefaults.standard.set(true, forKey: "settings_initialized")
+        
+        print("⚙️ Paramètres par défaut configurés")
+    }
+}

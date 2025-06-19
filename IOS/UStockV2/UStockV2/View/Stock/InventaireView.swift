@@ -4,6 +4,9 @@ struct InventaireView: View {
     @StateObject private var stockViewModel = StockViewModel()
     @State private var isRefreshing = false
     
+    // 🔹 NOUVEAU : État pour le carrousel (par défaut activé)
+    @State private var showCarousel = UserDefaults.standard.object(forKey: "show_carousel") == nil ? true : UserDefaults.standard.bool(forKey: "show_carousel")
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -31,15 +34,21 @@ struct InventaireView: View {
                     .padding(.top, 20)
                     .background(Color(hex: "C1DDF9")) // Même couleur que le fond
 
-                    // 🔹 NOUVEAU : ScrollView qui contient TOUT (carrousel + liste)
+                    // 🔹 NOUVEAU : ScrollView qui contient TOUT (carrousel conditionnel + liste)
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             // Pull-to-refresh control
                             PullToRefresh(coordinateSpaceName: "pullToRefresh", onRefresh: refreshData)
                             
-                            // 🔹 CARROUSEL INTÉGRÉ DANS LE SCROLL
-                            CarrouselProduitsBientotPerimes(produits: stockViewModel.stocks)
-                                .padding(.vertical, 10)
+                            // 🔹 CARROUSEL CONDITIONNEL
+                            if showCarousel {
+                                CarrouselProduitsBientotPerimes(produits: stockViewModel.stocks)
+                                    .padding(.vertical, 10)
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .move(edge: .top)),
+                                        removal: .opacity.combined(with: .move(edge: .top))
+                                    ))
+                            }
                             
                             // 🔹 CONTENU DE LA LISTE
                             if stockViewModel.isLoading && stockViewModel.stocks.isEmpty {
@@ -154,9 +163,18 @@ struct InventaireView: View {
                 // Charger les produits quand la vue apparaît
                 stockViewModel.fetchStocks()
                 
+                // 🔹 NOUVEAU : Mettre à jour l'état du carrousel depuis les paramètres (par défaut activé)
+                showCarousel = UserDefaults.standard.object(forKey: "show_carousel") == nil ? true : UserDefaults.standard.bool(forKey: "show_carousel")
+                
                 // 🔹 NOUVEAU : Programmer les notifications après chargement
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     NotificationService.shared.scheduleExpirationNotifications(for: stockViewModel.stocks)
+                }
+            }
+            // 🔹 NOUVEAU : Observer les changements de paramètres
+            .onReceive(NotificationCenter.default.publisher(for: .settingsChanged)) { _ in
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    showCarousel = UserDefaults.standard.object(forKey: "show_carousel") == nil ? true : UserDefaults.standard.bool(forKey: "show_carousel")
                 }
             }
             .alert(stockViewModel.errorMessage ?? "Erreur", isPresented: $stockViewModel.showErrorAlert) {
@@ -182,6 +200,11 @@ struct InventaireView: View {
         stockViewModel.fetchStocks()
         try? await Task.sleep(nanoseconds: 1_000_000_000)
     }
+}
+
+// 🔹 NOUVEAU : Extension pour les notifications de changement de paramètres
+extension Notification.Name {
+    static let settingsChanged = Notification.Name("settingsChanged")
 }
 
 // Preview

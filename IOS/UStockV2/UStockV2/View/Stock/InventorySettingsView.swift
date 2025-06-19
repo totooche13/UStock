@@ -1,11 +1,3 @@
-//
-//  InventorySettingsView.swift
-//  UStockV2
-//
-//  Created by Theo RUELLAN on 19/06/2025.
-//
-
-
 import SwiftUI
 
 struct InventorySettingsView: View {
@@ -14,7 +6,7 @@ struct InventorySettingsView: View {
     // États des paramètres
     @State private var scannerSound = UserDefaults.standard.bool(forKey: "scanner_sound_enabled")
     @State private var hapticsEnabled = UserDefaults.standard.bool(forKey: "haptics_enabled")
-    @State private var showCarousel = UserDefaults.standard.bool(forKey: "show_carousel")
+    @State private var showCarousel = UserDefaults.standard.object(forKey: "show_carousel") == nil ? true : UserDefaults.standard.bool(forKey: "show_carousel")
     @State private var dateFormat = DateDisplayFormat(rawValue: UserDefaults.standard.string(forKey: "date_format") ?? "long") ?? .long
     @State private var alertThreshold = UserDefaults.standard.integer(forKey: "alert_threshold") == 0 ? 3 : UserDefaults.standard.integer(forKey: "alert_threshold")
     @State private var itemSize = ItemSize(rawValue: UserDefaults.standard.string(forKey: "item_size") ?? "normal") ?? .normal
@@ -249,6 +241,9 @@ struct InventorySettingsView: View {
         UserDefaults.standard.setColor(goodColor, forKey: "good_color")
         
         print("💾 Paramètres d'inventaire sauvegardés")
+        
+        // 🔹 NOUVEAU : Notifier les autres vues que les paramètres ont changé
+        NotificationCenter.default.post(name: .settingsChanged, object: nil)
     }
 }
 
@@ -256,7 +251,7 @@ struct InventorySettingsView: View {
 
 enum DateDisplayFormat: String, CaseIterable {
     case short = "short"
-    case long = "long" 
+    case long = "long"
     case relative = "relative"
 }
 

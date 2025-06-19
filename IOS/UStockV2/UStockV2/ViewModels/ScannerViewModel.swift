@@ -29,9 +29,18 @@ class ScannerViewModel: ObservableObject {
                 switch result {
                 case .success(let product):
                     self.scannedProduct = product
+                    // 🔹 NOUVEAU : Son de succès lors de la récupération du produit
+                    SoundManager.shared.playSuccessSound()
+                    SoundManager.shared.triggerSuccessHaptic()
+                    print("✅ Produit trouvé avec succès: \(product.product_name)")
+                    
                 case .failure(let error):
                     self.errorMessage = "Erreur: \(error.localizedDescription)"
                     self.showError = true
+                    // 🔹 NOUVEAU : Son d'erreur lors de l'échec
+                    SoundManager.shared.playErrorSound()
+                    SoundManager.shared.triggerErrorHaptic()
+                    print("❌ Erreur lors de la récupération du produit: \(error.localizedDescription)")
                 }
             }
         }
@@ -41,6 +50,9 @@ class ScannerViewModel: ObservableObject {
         guard let product = scannedProduct else {
             errorMessage = "Aucun produit scanné"
             showError = true
+            // Son d'erreur
+            SoundManager.shared.playErrorSound()
+            SoundManager.shared.triggerErrorHaptic()
             completion(false)
             return
         }
@@ -55,10 +67,18 @@ class ScannerViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoading = false
                 if success {
+                    // 🔹 NOUVEAU : Son de succès lors de l'ajout au stock
+                    SoundManager.shared.playSuccessSound()
+                    SoundManager.shared.triggerSuccessHaptic()
+                    print("✅ Produit ajouté au stock avec succès")
                     completion(true)
                 } else {
                     self.errorMessage = "Erreur lors de l'ajout au stock"
                     self.showError = true
+                    // 🔹 NOUVEAU : Son d'erreur lors de l'échec d'ajout
+                    SoundManager.shared.playErrorSound()
+                    SoundManager.shared.triggerErrorHaptic()
+                    print("❌ Erreur lors de l'ajout au stock")
                     completion(false)
                 }
             }

@@ -14,6 +14,11 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
     private let overlayView = UIView()
     private let scannerBorderView = UIView()
     
+    // 🔹 NOUVEAU : Gestion des scans multiples
+    private var lastScannedCode: String?
+    private var lastScanTime: Date = Date()
+    private let scanCooldown: TimeInterval = 2.0 // 2 secondes entre chaque scan du même code
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -174,20 +179,90 @@ class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDel
         }
     }
     
-    // Correction de la signature de la méthode pour se conformer au protocole AVCaptureMetadataOutputObjectsDelegate
+    // 🔹 MODIFIÉ : Gestion améliorée du scan avec son et vibration
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         if let metadataObject = metadataObjects.first,
            let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject,
            let stringValue = readableObject.stringValue {
             
-            // Vibration de retour haptique
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+            // 🔹 NOUVEAU : Éviter les scans multiples du même code
+            let currentTime = Date()
+            if let lastCode = lastScannedCode,
+               lastCode == stringValue,
+               currentTime.timeIntervalSince(lastScanTime) < scanCooldown {
+                print("⏰ Scan du même code ignoré (cooldown)")
+                return
+            }
             
-            // Notification du délégué et arrêt de la session
-            delegate?.didFind(barcode: stringValue)
+            // Mettre à jour les informations de dernier scan
+            lastScannedCode = stringValue
+            lastScanTime = currentTime
             
+            print("📱 Code-barres scanné: \(stringValue)")
+            
+            // 🔹 NOUVEAU : Jouer le son et vibration de scan
+            DispatchQueue.main.async {
+                SoundManager.shared.playScanSound()
+                SoundManager.shared.triggerScanHaptic()
+            }
+            
+            // 🔹 NOUVEAU : Animation visuelle du scan réussi
+            animateSuccessfulScan()
+            
+            // Notification du délégué et arrêt de la session (après un délai pour le feedback)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.delegate?.didFind(barcode: stringValue)
+                
+                DispatchQueue.global(qos: .userInitiated).async {
+                    self.captureSession.stopRunning()
+                }
+            }
+        }
+    }
+    
+    // 🔹 NOUVEAU : Animation visuelle lors d'un scan réussi
+    private func animateSuccessfulScan() {
+        // Changer brièvement la couleur de la bordure en vert
+        let originalColor = scannerBorderView.layer.borderColor
+        
+        UIView.animate(withDuration: 0.2, animations: {
+            self.scannerBorderView.layer.borderColor = UIColor.green.cgColor
+            self.scannerBorderView.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+        }) { _ in
+            UIView.animate(withDuration: 0.2) {
+                self.scannerBorderView.layer.borderColor = originalColor
+                self.scannerBorderView.transform = CGAffineTransform.identity
+            }
+        }
+    }
+    
+    // 🔹 NOUVEAU : Méthode pour jouer un son d'erreur
+    func playErrorFeedback() {
+        DispatchQueue.main.async {
+            SoundManager.shared.playErrorSound()
+            SoundManager.shared.triggerErrorHaptic()
+        }
+        
+        // Animation visuelle d'erreur
+        let originalColor = scannerBorderView.layer.borderColor
+        
+        UIView.animate(withDuration: 0.1, animations: {
+            self.scannerBorderView.layer.borderColor = UIColor.red.cgColor
+        }) { _ in
+            UIView.animate(withDuration: 0.1, delay: 0.1, options: [], animations: {
+                self.scannerBorderView.layer.borderColor = originalColor
+            })
+        }
+    }
+    
+    // 🔹 NOUVEAU : Méthode pour réactiver le scanner
+    func resetScanner() {
+        lastScannedCode = nil
+        lastScanTime = Date()
+        
+        if captureSession?.isRunning == false {
             DispatchQueue.global(qos: .userInitiated).async {
-                self.captureSession.stopRunning()
+                self.captureSession.startRunning()
             }
         }
     }
