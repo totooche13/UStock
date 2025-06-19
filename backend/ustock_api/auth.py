@@ -10,7 +10,8 @@ import ustock_api.models as models
 # Clé secrète pour signer les tokens JWT (CHANGE-LA pour plus de sécurité)
 SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # Durée de vie du token (1 heure)
+# 🔹 MODIFICATION : Token valide pendant 48 heures au lieu de 1 heure
+ACCESS_TOKEN_EXPIRE_MINUTES = 2880  # 48h * 60 minutes = 2880 minutes
 
 # Gestion du hashage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -28,7 +29,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        # 🔹 MODIFICATION : Durée par défaut de 48 heures si pas spécifiée
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -39,7 +41,7 @@ def authenticate_user(db: Session, username: str, password: str):
         return None
     return user
 
-# Vérifier l’authentification d'un utilisateur depuis son token
+# Vérifier l'authentification d'un utilisateur depuis son token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

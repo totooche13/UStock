@@ -45,9 +45,12 @@ def login_for_access_token(form_data: UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Nom d'utilisateur ou mot de passe invalide")
 
+    # 🔹 MODIFICATION : Le token durera maintenant 48 heures (2880 minutes)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={"sub": user.username, "id": user.id, "email": user.email}, expires_delta=access_token_expires)
 
+    print(f"✅ Token créé avec une durée de vie de {ACCESS_TOKEN_EXPIRE_MINUTES} minutes (48h)")
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
 # 🔹 MODIFICATION : Route pour récupérer les infos avec format de date correct
