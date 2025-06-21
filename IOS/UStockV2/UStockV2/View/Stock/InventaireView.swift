@@ -103,7 +103,7 @@ struct InventaireView: View {
                                 .foregroundColor(Color(hex: "156585")) // Couleur active
                             }
                             Spacer()
-                            NavigationLink(destination: Text("Liste")) {
+                            NavigationLink(destination: ListView()) {
                                 VStack(spacing: 0) {
                                     Image(systemName: "list.bullet")
                                         .font(.system(size: 30))

@@ -17,12 +17,7 @@ struct WelcomeView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 150, height: 150)
-                    
-                    Text("UStock")
-                        .font(.custom("ChauPhilomeneOne-Regular", size: 32))
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding(.top, 10)
+
 
                     Spacer()
 

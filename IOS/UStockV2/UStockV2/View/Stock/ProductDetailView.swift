@@ -14,6 +14,7 @@ struct ProductDetailView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage: String = ""
     
+    
     @Environment(\.dismiss) private var dismiss
     
     // ViewModel pour gérer les interactions avec l'API
