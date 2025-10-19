@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
 # ⚙️ Configuration de la connexion
-DATABASE_URL = "mysql+mysqlconnector://root:root@localhost/UStock"
+DATABASE_URL = "mysql+mysqlconnector://ustock:UStock@localhost/UStock"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

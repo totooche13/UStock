@@ -13,8 +13,8 @@ GTIN = sys.argv[1]
 # ⚙️ Configuration de la connexion MySQL
 db_config = {
     "host": "localhost",
-    "user": "root",  # Change selon ton utilisateur MySQL
-    "password": "root",
+    "user": "ustock",
+    "password": "UStock",
     "database": "UStock"
 }
 

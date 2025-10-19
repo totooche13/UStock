@@ -14,8 +14,8 @@ login_manager.login_view = "login"
 # ⚙️ Configuration de la connexion MySQL
 db_config = {
     "host": "localhost",
-    "user": "root",
-    "password": "root",
+    "user": "ustock",
+    "password": "UStock",
     "database": "UStock"
 }
 
