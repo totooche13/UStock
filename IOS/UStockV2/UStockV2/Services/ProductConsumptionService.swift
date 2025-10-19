@@ -16,7 +16,7 @@ struct ConsumptionRequest: Codable {
 class ProductConsumptionService {
     static let shared = ProductConsumptionService()
     
-    private let baseURL = "https://api.ustock.pro:8443/consumption/"
+    private let baseURL = "https://api.ustock.pro/consumption/"
     
     private init() {}
     

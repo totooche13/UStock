@@ -156,7 +156,7 @@ struct EditProfileView: View {
         
         isUploadingImage = true
         
-        let url = URL(string: "https://api.ustock.pro:8443/users/me/profile-image")!
+        let url = URL(string: "https://api.ustock.pro/users/me/profile-image")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue(token, forHTTPHeaderField: "Authorization")
@@ -205,7 +205,7 @@ struct EditProfileView: View {
             return
         }
         
-        let url = URL(string: "https://api.ustock.pro:8443/users/me")!
+        let url = URL(string: "https://api.ustock.pro/users/me")!
         var request = URLRequest(url: url)
         request.setValue(token, forHTTPHeaderField: "Authorization")
         

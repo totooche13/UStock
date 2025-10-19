@@ -48,7 +48,7 @@ class StockViewModel: ObservableObject {
         
         isLoading = true
         
-        let url = URL(string: "https://api.ustock.pro:8443/stocks/")!
+        let url = URL(string: "https://api.ustock.pro/stocks/")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -157,7 +157,7 @@ class StockViewModel: ObservableObject {
         
         isLoading = true
         
-        let url = URL(string: "https://api.ustock.pro:8443/stocks/\(stockId)")!
+        let url = URL(string: "https://api.ustock.pro/stocks/\(stockId)")!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

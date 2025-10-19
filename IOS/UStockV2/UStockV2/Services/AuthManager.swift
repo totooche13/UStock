@@ -83,7 +83,7 @@ class AuthManager {
             return
         }
         
-        let url = URL(string: "https://api.ustock.pro:8443/users/me")!
+        let url = URL(string: "https://api.ustock.pro/users/me")!
         var request = URLRequest(url: url)
         request.setValue(token, forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 15.0

@@ -184,7 +184,7 @@ struct AccountDeletionView: View {
         isDeleting = true
         
         // URL de l'API pour supprimer le compte
-        let url = URL(string: "https://api.ustock.pro:8443/users/me")!
+        let url = URL(string: "https://api.ustock.pro/users/me")!
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue(token, forHTTPHeaderField: "Authorization")

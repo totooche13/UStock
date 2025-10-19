@@ -43,7 +43,7 @@ class LoginViewModel: ObservableObject {
         
         print("🚀 Début de la tentative de connexion pour: \(username)")
         
-        let url = URL(string: "https://api.ustock.pro:8443/users/login")!
+        let url = URL(string: "https://api.ustock.pro/users/login")!
         let body: [String: String] = [
             "username": username.trimmingCharacters(in: .whitespacesAndNewlines),
             "password": password

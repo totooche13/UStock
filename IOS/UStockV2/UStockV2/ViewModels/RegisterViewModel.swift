@@ -7,7 +7,7 @@ class RegisterViewModel: ObservableObject {
     
 
     func register(firstName: String, lastName: String, email: String, username: String, password: String, gender: String, completion: @escaping (Bool) -> Void) {
-        let url = URL(string: "https://api.ustock.pro:8443/users/register")!
+        let url = URL(string: "https://api.ustock.pro/users/register")!
         
         // 🔹 MODIFICATION : Suppression de birth_date
         let body: [String: Any?] = [
@@ -72,7 +72,7 @@ class RegisterViewModel: ObservableObject {
     
     // Connexion automatique après inscription
     private func autoLogin(username: String, password: String, completion: @escaping (Bool) -> Void) {
-        let url = URL(string: "https://api.ustock.pro:8443/users/login")!
+        let url = URL(string: "https://api.ustock.pro/users/login")!
         let body: [String: String] = ["username": username, "password": password]
 
         guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else {
